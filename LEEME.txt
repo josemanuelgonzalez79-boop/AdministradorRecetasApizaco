@@ -1,0 +1,61 @@
+REPORTE DE DISOLUCIÓN - BITÁCORA (ARCHIVOS LISTOS PARA COPIAR)
+================================================================
+
+Este paquete está preparado contra la rama `desarrollo` del proyecto
+AdministradorRecetasApizaco. NO requiere ejecutar Python, integradores ni
+scripts de instalación. NO modifica GitHub y NO modifica el SCADA.
+
+CÓMO USAR
+1. Haz un respaldo de las versiones actuales de tu frontend y backend.
+2. Extrae el ZIP.
+3. Arrastra las carpetas "AdministradorRecetasPrebatchBackend" y
+   "AdministradorRecetasPrebatchFrontend" a la carpeta que contiene tus
+   dos proyectos, y acepta combinar carpetas y reemplazar archivos.
+4. Compila ambos proyectos y prueba el proceso 177.
+   Backend: mvn -DskipTests clean package
+   Frontend: npx ng build
+
+ARCHIVOS EXISTENTES COMPLETOS (PARA REEMPLAZAR)
+- AdministradorRecetasPrebatchFrontend/src/app/core/services/components/
+  procesos.service.ts
+- AdministradorRecetasPrebatchFrontend/src/app/core/services/components/
+  procesos-disolucion/procesos-disolucion.component.ts
+
+ARCHIVOS NUEVOS (SE AGREGAN AUTOMÁTICAMENTE AL COPIAR LAS CARPETAS)
+- Backend/controller/ReporteBitacoraController.java (ruta completa en ZIP)
+- Backend/dto/ReporteBitacoraEvento.java
+- Frontend/interfaces/ReporteBitacora.ts
+- Frontend/core/services/secciones-bitacora.ts
+- Frontend/core/services/reporte-bitacora-pdf.service.ts
+
+CAMBIOS
+- Al dar doble clic a un proceso se consulta POST /reportLog y se incorpora
+  la sección BITÁCORA DE PROCESAMIENTO al mismo PDF.
+- Se incluye resumen de componentes por posición con columnas de duración
+  y ciclos, aún como pendientes de datos reales.
+- NO se consulta ni se agrega la sección de códigos de barras.
+- El archivo existente reporte-pdf.service.ts NO se sustituye; se reutiliza
+  la composición actual del PDF mediante un adaptador. Cuando se refactorice
+  el servicio original, conviene exponer formalmente un método público para
+  construir el documento en lugar del acceso de compatibilidad temporal.
+- NO se alteran las funciones ni componentes ajenos al reporte.
+
+PROCESO 177
+- 9 eventos históricos, todos step=1 (Iniciado).
+- Los pasos 2-5, unidad, ciclos, duración, agua real y meta real NO constan
+  en los datos proporcionados. Se marcan PENDIENTE SCADA.
+- Los valores de agua en step=1 no se usan como confirmación de dosificación.
+
+PENDIENTE SCADA
+- Guardar steps 2-5, eventos por ciclo, unidades y cantidades reales.
+- Validar esquema con Ignition, después revisar y ejecutar el SQL ubicado
+  en sql_pendiente_scada/ (NO EJECUTAR AHORA).
+- Incorporar luego el esquema definitivo y script manual a Flyway con
+  migraciones correctamente versionadas, probadas sobre una copia de BD.
+
+ESTADO DE PRUEBAS
+- Analizadas las fuentes de la rama desarrollo al preparar este paquete.
+- Comprobada sintaxis TS de los archivos del paquete y lógica del resumen
+  con datos equivalentes al proceso 177.
+- No es posible confirmar build completo Angular/Spring Boot sin las
+  dependencias y la instalación de los proyectos.

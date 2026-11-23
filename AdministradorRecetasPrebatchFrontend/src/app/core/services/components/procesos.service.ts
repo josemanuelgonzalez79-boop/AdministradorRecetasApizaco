@@ -7,59 +7,44 @@ import { enviroment } from '../../../../enviroments/enviroment';
 @Injectable({
   providedIn: 'root'
 })
+export class ReporteService {
+  private reporteUrl = `${enviroment.apiUrl}/api/v1/recetPrebatch/`;
 
-export class ReporteService{
+  constructor(private http: HttpClient) {}
 
-    private reporteUrl = `${enviroment.apiUrl}/api/v1/recetPrebatch/`;
+  datosReporte(fechaInicio: string, fechaFin: string): Observable<ApiResponseDTO> {
+    const fullComponentUrl = `${this.reporteUrl}reportData`;
+    return this.http.post<ApiResponseDTO>(fullComponentUrl, { fechaInicio, fechaFin });
+  }
 
-    constructor(private http: HttpClient) {}
+  reporteMain(processId: string): Observable<ApiResponseDTO> {
+    const reporteMainUrl = `${this.reporteUrl}reportMain`;
+    return this.http.post<ApiResponseDTO>(reporteMainUrl, { processId });
+  }
 
+  reporteConc(processId: string): Observable<ApiResponseDTO> {
+    const reporteConc = `${this.reporteUrl}reportConc`;
+    return this.http.post<ApiResponseDTO>(reporteConc, { processId });
+  }
 
-    datosReporte(fechaInicio: string, fechaFin: string): Observable<ApiResponseDTO>{
+  reportePos(processId: string): Observable<ApiResponseDTO> {
+    const reportePos = `${this.reporteUrl}reportPos`;
+    return this.http.post<ApiResponseDTO>(reportePos, { processId });
+  }
 
-        const fullComponentUrl = `${this.reporteUrl}reportData`;
+  reporteBitacora(processId: string): Observable<ApiResponseDTO> {
+    const url = `${this.reporteUrl}reportLog`;
+    return this.http.post<ApiResponseDTO>(url, { processId });
+  }
 
-        return this.http.post<ApiResponseDTO>(fullComponentUrl, { fechaInicio,fechaFin });
-    }
+  actualizaBrix(brix: number, processId: number): Observable<ApiResponseDTO> {
+    const brixUrl = `${this.reporteUrl}updateBrix`;
+    return this.http.post<ApiResponseDTO>(brixUrl, { brix, processId });
+  }
 
-    reporteMain(processId: string): Observable<ApiResponseDTO> {
-
-      const reporteMainUrl = `${this.reporteUrl}reportMain`;
-
-      return this.http.post<ApiResponseDTO>(reporteMainUrl,{processId});
-
-    }
-
-    reporteConc(processId: string): Observable<ApiResponseDTO> {
-
-      const reporteConc = `${this.reporteUrl}reportConc`;
-
-      return this.http.post<ApiResponseDTO>(reporteConc,{processId});
-
-    }
-
-    reportePos(processId: string): Observable<ApiResponseDTO> {
-
-      const reportePos = `${this.reporteUrl}reportPos`;
-
-      return this.http.post<ApiResponseDTO>(reportePos,{processId});
-
-    }
-
-    actualizaBrix(brix: number, processId: number): Observable<ApiResponseDTO> {
-
-      const brixUrl = `${this.reporteUrl}updateBrix`;
-
-      return this.http.post<ApiResponseDTO>(brixUrl,{ brix, processId });
-
-    }
-
-    reporteBarcodes(processId: string): Observable<ApiResponseDTO> {
-
-      const url = `${this.reporteUrl}barcodes`;
-
-      return this.http.post<ApiResponseDTO>(url, { processId });
-      
-    }
-
+  // Reservado para otro módulo; NO participa en el reporte de disolución actual.
+  reporteBarcodes(processId: string): Observable<ApiResponseDTO> {
+    const url = `${this.reporteUrl}barcodes`;
+    return this.http.post<ApiResponseDTO>(url, { processId });
+  }
 }

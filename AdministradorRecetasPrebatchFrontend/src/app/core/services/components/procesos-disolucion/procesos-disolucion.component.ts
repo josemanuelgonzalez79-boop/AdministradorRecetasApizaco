@@ -6,10 +6,12 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { CalendarModule } from 'primeng/calendar';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';            
+import { InputTextModule } from 'primeng/inputtext';
 import { ReporteService } from '../procesos.service';
 import { MessageService } from 'primeng/api';
 import { ReportePdfService } from '../../../services/reporte-pdf.service';
+import { ReporteBitacoraPdfService } from '../../../services/reporte-bitacora-pdf.service';
+import { ReportLogItem } from '../../../../interfaces/ReporteBitacora';
 import { firstValueFrom } from 'rxjs';
 import {
   ReportConcItem,
@@ -53,19 +55,19 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   @Output() cerrarModal = new EventEmitter<void>();
 
   procesos: Proceso[] = [];
-
-  filteredProcesos: Proceso[] = [];       
+  filteredProcesos: Proceso[] = [];
 
   public fechaInicio!: Date;
   public fechaFin!: Date;
 
   // filtros texto
-  recetaFilter = '';                    
-  tankFilter  = '';                        
-  
+  recetaFilter = '';
+  tankFilter  = '';
+
   constructor(
     private messageService: MessageService,
     private pdfSvc: ReportePdfService,
+    private pdfBitacoraSvc: ReporteBitacoraPdfService,
     @Inject(PLATFORM_ID) private platformId: Object,
     @Inject(DOCUMENT) private doc: Document,
   ) {}
@@ -93,7 +95,6 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   private ensureDefaultDates(): void {
     if (!this.fechaFin) this.fechaFin = new Date();
     if (!this.fechaInicio) this.fechaInicio = new Date();
-    
   }
 
   private parseFechaToDate(val: any): Date {
@@ -132,7 +133,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
     const ss   = pad(x.getSeconds());
     return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
   }
-  
+
   buscarProcesos(): void {
     this.ensureDefaultDates();
     this.datosReporte();
@@ -164,8 +165,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
     return v;
   }
 
-  // Tabla -> doble clic reporte 
-
+  // Tabla -> doble clic reporte
   async openIndividual(row: Proceso) {
     const pid = Number(row.processId);
     try {
@@ -219,18 +219,18 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
         }
       }
 
-      // Segundo round: recargar main y traer conc, pos y barcodes
-      const [main2, conc2, pos2, bar2] = await Promise.all([
+      // Recargar información y bitácora. No consultar códigos de barra.
+      const [main2, conc2, pos2, log2] = await Promise.all([
         firstValueFrom(this.reporteService.reporteMain(String(pid))),
         firstValueFrom(this.reporteService.reporteConc(String(pid))),
         firstValueFrom(this.reporteService.reportePos(String(pid))),
-        firstValueFrom(this.reporteService.reporteBarcodes(String(pid)))
+        firstValueFrom(this.reporteService.reporteBitacora(String(pid)))
       ]);
 
-      const m2           = this.mapMain((main2 as any)?.data);
-      const concItems    = this.mapConc((conc2 as any)?.data);
-      const posItems     = this.mapPos((pos2 as any)?.data);
-      const barcodeItems = this.mapBarcodes((bar2 as any)?.data);
+      const m2 = this.mapMain((main2 as any)?.data);
+      const concItems = this.mapConc((conc2 as any)?.data);
+      const posItems = this.mapPos((pos2 as any)?.data);
+      const bitacoraItems = this.mapBitacora((log2 as any)?.data);
 
       if (!m2) {
         this.messageService.add({
@@ -241,7 +241,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
         return;
       }
 
-      this.pdfSvc.previewOneDetailed(m2, concItems, posItems, barcodeItems);
+      await this.pdfBitacoraSvc.previewOneDetailed(m2, concItems, posItems, bitacoraItems);
 
     } catch (err) {
       console.error('Error openIndividual:', err);
@@ -252,7 +252,6 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
       });
     }
   }
-
 
   private toDate(s: string): Date {
     const iso = s?.includes('T') ? s : s?.replace(' ', 'T');
@@ -276,7 +275,6 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
       units:     this.num(d.units),
       userName:  String(d.userName ?? d.user_name ?? ''),
       tankName:  String(d.tankName ?? d.tank_name ?? ''),
-
       massSetpoint:    this.num(d.massSetPoint ?? d.mass_setpoint),
       massAccum:       this.num(d.massAccum ?? d.mass_accum),
       volumeSetpoint:  this.num(d.volumeSetPoint ?? d.volume_setpoint),
@@ -296,22 +294,18 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
 
     for (let i = 1; i <= 16; i++) {
       const nn = String(i).padStart(2, '0');
-
       const id   = d[`c${nn}_id`]   ?? d[`c${nn}Id`];
       const name = d[`c${nn}_name`] ?? d[`c${nn}Name`];
       const mass = d[`c${nn}_mass`] ?? d[`c${nn}Mass`];
       const pos  = d[`c${nn}_pos`]  ?? d[`c${nn}Pos`];
-
       const idStr = id != null ? String(id) : '';
       const nameStr = name != null ? String(name) : '';
       const massNum = Number(mass ?? 0);
       const posNum  = Number(pos ?? 0);
-
       if (idStr && idStr !== '-' && (nameStr || massNum || posNum)) {
         items.push({ id: idStr, name: nameStr, mass: massNum, pos: posNum });
       }
     }
-
     return items.sort((a, b) => a.pos - b.pos);
   }
 
@@ -320,8 +314,8 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
     return list
       .map(r => ({
         position: this.num(r.position ?? r.position),
-        manual:   Boolean(r.manual),
-        water:    this.num(r.water),
+        manual: Boolean(r.manual),
+        water: this.num(r.water),
       }))
       .sort((a,b)=> a.position - b.position);
   }
@@ -329,15 +323,34 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   private mapBarcodes(rows: any[]): ReportBarcodeItem[] {
     const list = Array.isArray(rows) ? rows : [];
     return list.map(r => ({
-      presentationId:        String(r.presentationId ?? r.presentation_id ?? ''),
-      presentationBatch:     Number(r.presentationBatch ?? r.presentation_batch ?? 0),
-      presentationExpiration:String(r.presentationExpiration ?? r.presentation_expiration ?? ''),
-      presentationSerial:    Number(r.presentationSerial ?? r.presentation_serial ?? 0),
-      componentRef:          String(r.componentRef ?? r.component_ref ?? ''),
-      presentationName:      String(r.presentationName ?? r.presentation_name ?? ''),
-      captures:              Number(r.captures ?? 0),
-      units:                 Number(r.units ?? 0),
+      presentationId: String(r.presentationId ?? r.presentation_id ?? ''),
+      presentationBatch: Number(r.presentationBatch ?? r.presentation_batch ?? 0),
+      presentationExpiration: String(r.presentationExpiration ?? r.presentation_expiration ?? ''),
+      presentationSerial: Number(r.presentationSerial ?? r.presentation_serial ?? 0),
+      componentRef: String(r.componentRef ?? r.component_ref ?? ''),
+      presentationName: String(r.presentationName ?? r.presentation_name ?? ''),
+      captures: Number(r.captures ?? 0),
+      units: Number(r.units ?? 0),
     }));
+  }
+
+  private mapBitacora(rows: any[]): ReportLogItem[] {
+    const list = Array.isArray(rows) ? rows : [];
+    return list.map((r: any) => ({
+      processId: Number(r.processId ?? r.process_id ?? 0),
+      position: Number(r.position ?? 0),
+      step: Number(r.step ?? 0),
+      updateTime: String(r.updateTime ?? r.update_time ?? ''),
+      manual: Boolean(r.manual),
+      waterConfigured: r.waterConfigured == null ? null : Number(r.waterConfigured),
+      unitName: r.unitName ?? null,
+      cycleNumber: r.cycleNumber == null ? null : Number(r.cycleNumber),
+      actualWaterKg: r.actualWaterKg == null ? null : Number(r.actualWaterKg),
+      metaKg: r.metaKg == null ? null : Number(r.metaKg),
+      durationSeconds: r.durationSeconds == null ? null : Number(r.durationSeconds),
+    })).sort((a: ReportLogItem, b: ReportLogItem) =>
+      a.updateTime.localeCompare(b.updateTime) || a.position - b.position || a.step - b.step
+    );
   }
 
   datosReporte(): void {
@@ -358,7 +371,6 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
           fructoseAccum: Number(r?.fructoseAccum ?? r?.fructose_accum ?? 0),
           waterAccum: Number(r?.waterAccum ?? r?.water_accum ?? 0),
         }));
-
         this.aplicarFiltros();
       },
       error: (err) => {
@@ -376,7 +388,6 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   aplicarFiltros(): void {
     const receta = this.recetaFilter.trim().toLowerCase();
     const tank  = this.tankFilter.trim().toLowerCase();
-
     this.filteredProcesos = this.procesos.filter(p => {
       const folioMatch = receta ? String(p.name).toLowerCase().includes(receta) : true;
       const tankMatch  = tank  ? p.tankName.toLowerCase().includes(tank)         : true;
@@ -386,16 +397,16 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
 
   previewPdf(): void {
     if (!this.filteredProcesos.length) return;
-    // Imprimime lo que realmente se ve (ya filtrado)
+    // Imprime lo que realmente se ve (ya filtrado)
     this.pdfSvc.preview(this.filteredProcesos, this.fechaInicio, this.fechaFin);
   }
 
-  private lockScroll()  {
+  private lockScroll() {
     if (!isPlatformBrowser(this.platformId)) return;
     this.doc.body.style.overflow = 'hidden';
   }
 
-  private unlockScroll(){
+  private unlockScroll() {
     if (!isPlatformBrowser(this.platformId)) return;
     this.doc.body.style.overflow = '';
   }
