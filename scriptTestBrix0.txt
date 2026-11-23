@@ -1,0 +1,25 @@
+select * from pb_recipes_executed_report_main where brix = 0
+
+select * from pb_recipes_executed where process_id = 17
+
+select * from pb_recipes where id_text = 'RECETA_TEST'
+
+update pb_recipes set brix = 0 where id_numeric = 22
+
+update pb_recipes_executed set brix_user = null where process_id = 9
+
+INSERT INTO pb_recipes (id_text, version, name, brix, density, type, sucrose, fructose, water, mass)
+VALUES ('RECETA_TEST', 1, 'Receta con Brix 0', 0, 1.05, 2, 10, 5, 20, 35);
+
+INSERT INTO pb_recipes_executed (process_id, recipe_id, version, units, user_name, tank, update_time)
+VALUES (999999, 'RECETA_TEST', 1, 1, 'tester', 1, now());
+
+
+UPDATE pb_recipes_executed
+SET brix_user = NULL
+WHERE process_id = 12345; 
+
+UPDATE pb_recipes
+SET brix = 0
+WHERE id_text = (SELECT recipe_id FROM pb_recipes_executed WHERE process_id = 17)
+  AND version  = (SELECT version   FROM pb_recipes_executed WHERE process_id = 17);

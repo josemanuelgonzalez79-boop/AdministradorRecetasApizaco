@@ -1,0 +1,136 @@
+<p-dialog
+  header="Producción de etiquetas"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="!calendarOpen"  
+  [closeOnEscape]="!calendarOpen"     
+  [style]="{ width: '750px' }"
+  [breakpoints]="{ '960px': '95vw', '640px': '98vw' }"
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)">
+
+  <!-- CONTENIDO -->
+  <div class="modes">
+    <p-checkbox
+      inputId="chkArb"
+      [binary]="true"
+      [ngModel]="modo === 'arbitrarias'"
+      (onChange)="setModo('arbitrarias', $event.checked)">
+    </p-checkbox>
+    <label for="chkArb">Etiquetas arbitrarias</label>
+
+    <p-checkbox
+      inputId="chkAle"
+      [binary]="true"
+      [ngModel]="modo === 'aleatorias'"
+      (onChange)="setModo('aleatorias',  $event.checked)">
+    </p-checkbox>
+    <label for="chkAle">Etiquetas aleatorias</label>
+  </div>
+
+  <div class="row">
+    <label>Producto</label>
+    <p-dropdown 
+      id="presentacion"
+      name="presentacion"
+      [options]="listaProductos"
+      [(ngModel)]="productoSeleccionado"
+      optionLabel="presentation"
+      optionValue="presentation_id"
+      placeholder="Seleccione..."
+      appendTo="body"
+      [filter]="true"
+      (onChange)="onProductoSeleccionado($event)">
+    </p-dropdown>
+  </div>
+
+  <div class="grid">
+    <div class="row">
+      <label>Identificador:</label>
+      <input pInputText [disabled]="true" [ngModel]="id" />
+    </div>
+    <div class="row">
+      <label>Nombre:</label>
+      <input pInputText [disabled]="true" [ngModel]="nombrePresentacion" />
+    </div>
+    <div class="row">
+      <label>Referencia:</label>
+      <input pInputText [disabled]="true" [ngModel]="referenciaPresentacion" />
+    </div>
+    <div class="row">
+      <label>Unidades:</label>
+      <p-inputNumber [(ngModel)]="unidadesPresentacion" [min]="1" [useGrouping]="false"
+                     [showButtons]="true" [disabled]="true"></p-inputNumber>
+    </div>
+  </div>
+
+  <p-divider></p-divider>
+
+  <!-- ALEATORIAS -->
+  <fieldset class="block" [class.block--off]="!enableAleatorias">
+    <legend>Etiquetas aleatorias</legend>
+    <div class="row">
+      <label>Etiquetas a producir:</label>
+      <p-inputNumber [(ngModel)]="etiquetasAProducir"
+                     [min]="1" [useGrouping]="false" [showButtons]="true"
+                     [disabled]="!enableAleatorias"></p-inputNumber>
+    </div>
+  </fieldset>
+
+  <!-- ARBITRARIAS -->
+  <fieldset class="block" [class.block--off]="!enableArbitrarias">
+    <legend>Detalles</legend>
+
+    <div class="row">
+      <label>Lote:</label>
+      <input pInputText
+             [(ngModel)]="lote"
+             [disabled]="!enableArbitrarias"
+             maxlength="10"
+             inputmode="numeric"
+             autocomplete="off"
+             (input)="filterDigits($event, 'lote')"
+             (paste)="onPasteDigits($event, 'lote')"
+             placeholder="Ej. 495862" />
+    </div>
+
+    <div class="row">
+      <label>Consecutivo:</label>
+      <input pInputText
+             [(ngModel)]="consecutivo"
+             [disabled]="!enableArbitrarias"
+             maxlength="10"
+             inputmode="numeric"
+             autocomplete="off"
+             (input)="filterDigits($event, 'consecutivo')"
+             (paste)="onPasteDigits($event, 'consecutivo')"
+             placeholder="Ej. 319" />
+    </div>
+
+    <div class="row">
+      <label for="caducidad">Caducidad:</label>
+        <p-calendar
+          [(ngModel)]="caducidad"
+          [disabled]="!enableArbitrarias"
+          [minDate]="hoy"
+          [showIcon]="true"
+          [touchUI]="isTouchUI"      
+          appendTo="body"
+          [panelStyleClass]="'caducidad-panel'"
+          (onShow)="onCalendarShow()"
+          (onHide)="onCalendarHide()"
+          dateFormat="dd/mm/yy">
+        </p-calendar>
+    </div>
+  </fieldset>
+
+  <!-- pie de pagina -->
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Imprimir" class="p-button-primary"
+            (click)="imprimir()" [disabled]="!puedeImprimir"></button>
+    <button pButton type="button" label="Cancelar" class="p-button-secondary"
+            (click)="cancelar()"></button>
+  </ng-template>
+</p-dialog>

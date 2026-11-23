@@ -1,0 +1,268 @@
+<p-dialog
+  [modal]="true"
+  [closable]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [baseZIndex]="6100"
+  header="Presentaciones de componentes"
+  [style]="{ width: '900px', maxWidth: '95vw' }"
+  [breakpoints]="{ '960px': '95vw', '640px': '98vw' }"
+  [(visible)]="visible"
+  (onHide)="cerrarModal.emit()"
+>
+  <!-- Selector superior -->
+  <div class="p-fluid grid">
+    <div class="col-12">
+      <p-dropdown
+        id="presentacion"
+        name="presentacion"
+        [options]="listaPresentaciones"
+        [(ngModel)]="componenteSeleccionado"
+        optionLabel="presentation"
+        optionValue="presentation_id"
+        placeholder="Seleccionar presentación"
+        [showClear]="true"
+        [filter]="true"
+        (onChange)="onComponenteSeleccionado($event)"
+        (onClear)="onClearPresentacion()">
+      </p-dropdown>
+    </div>
+  </div>
+
+  <p-divider></p-divider>
+
+  <!-- Formulario -->
+  <form>
+    <div class="p-fluid grid">
+      <div class="col-12 md:col-6">
+        <label class="block mb-2">Último cambio:</label>
+        <input
+          id="fechaPresentacion"
+          name="fechaPresentacion"
+          pInputText
+          type="text"
+          [(ngModel)]="fechaPresentacion"
+          readonly
+          [disabled]="!banderaUltimoCambio">
+      </div>
+
+      <div class="col-12 md:col-6">
+        <label class="block mb-2">Identificador:</label>
+        <input
+          id="id"
+          name="id"
+          pInputText
+          type="text"
+          [(ngModel)]="id"
+          readonly
+          [disabled]="!banderaIdentificador">
+      </div>
+
+      <div class="col-12 md:col-6">
+        <label class="block mb-2">Nombre:</label>
+        <input
+          id="nombre"
+          name="nombre"
+          pInputText
+          type="text"
+          [(ngModel)]="presentation_name"
+          [disabled]="soloLectura || !banderaNombre">
+      </div>
+
+      <div class="col-12 md:col-6">
+        <label class="block mb-2">Referencia:</label>
+        <input
+          id="referencia"
+          name="referencia"
+          pInputText
+          type="text"
+          [(ngModel)]="recipe_reference"
+          [disabled]="soloLectura || !banderaReferencia">
+      </div>
+
+      <div class="col-12 md:col-3">
+        <label class="block mb-2">Unidades:</label>
+        <p-inputNumber
+          id="unidades"
+          name="unidades"
+          [(ngModel)]="unidades"
+          [min]="0"
+          mode="decimal"
+          [maxFractionDigits]="5"
+          [disabled]="soloLectura || !banderaUnidades">
+        </p-inputNumber>
+      </div>
+    </div>
+
+    <!-- Contenido -->
+    <p-panel header="Contenido" class="mt-3">
+      <div class="p-fluid grid formgrid">
+        <div class="field col-12 md:col-6">
+          <p-dropdown
+            id="contenido1"
+            name="contenido1"
+            [options]="optsContenido(1)"
+            optionLabel="contenido"
+            optionValue="component_id"
+            [(ngModel)]="contenido1"
+            [filter]="true"
+            placeholder="Seleccione opción 1"
+            [disabled]="soloLectura || !banderaContenido1"
+            (onChange)="onSelectContenido(1, $event.value)"
+            (onClear)="onClearContenido(1)">
+          </p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <p-dropdown
+            id="contenido2"
+            name="contenido2"
+            [options]="optsContenido(2)"
+            optionLabel="contenido"
+            optionValue="component_id"
+            [(ngModel)]="contenido2"
+            [showClear]="true"
+            [filter]="true"
+            placeholder="Seleccione opción 2"
+            [disabled]="soloLectura || !banderaContenido2"
+            (onChange)="onSelectContenido(2, $event.value)"
+            (onClear)="onClearContenido(2)">
+          </p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <p-dropdown
+            id="contenido3"
+            name="contenido3"
+            [options]="optsContenido(3)"
+            optionLabel="contenido"
+            optionValue="component_id"
+            [(ngModel)]="contenido3"
+            [showClear]="true"
+            [filter]="true"
+            placeholder="Seleccione opción 3"
+            [disabled]="soloLectura || !banderaContenido3"
+            (onChange)="onSelectContenido(3, $event.value)"
+            (onClear)="onClearContenido(3)">
+          </p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <p-dropdown
+            id="contenido4"
+            name="contenido4"
+            [options]="optsContenido(4)"
+            optionLabel="contenido"
+            optionValue="component_id"
+            [(ngModel)]="contenido4"
+            [showClear]="true"
+            [filter]="true"
+            placeholder="Seleccione opción 4"
+            [disabled]="soloLectura || !banderaContenido4"
+            (onChange)="onSelectContenido(4, $event.value)"
+            (onClear)="onClearContenido(4)">
+          </p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <p-dropdown
+            id="contenido5"
+            name="contenido5"
+            [options]="optsContenido(5)"
+            optionLabel="contenido"
+            optionValue="component_id"
+            [(ngModel)]="contenido5"
+            [showClear]="true"
+            [filter]="true"
+            placeholder="Seleccione opción 5"
+            [disabled]="soloLectura || !banderaContenido5"
+            (onChange)="onSelectContenido(5, $event.value)"
+            (onClear)="onClearContenido(5)">
+          </p-dropdown>
+        </div>
+      </div>
+    </p-panel>
+
+    <!-- Comentarios -->
+    <div class="p-fluid grid mt-3">
+      <div class="col-12">
+        <label class="block mb-2">Comentarios:</label>
+        <textarea
+          id="comments"
+          name="comments"
+          pInputTextarea
+          rows="4"
+          [(ngModel)]="comments"
+          [disabled]=" soloLectura || !banderaComentarios">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <!-- Pie de página -->
+  <ng-template pTemplate="footer">
+    <div class="flex justify-content-end gap-2 w-full">
+      <button pButton label="Guardar"  icon="pi pi-save"  class="p-button-success"  type="button" [disabled]="soloLectura || !banderaGuardar"  (click)="guardadoPresentacion()"></button>
+      <button pButton label="Nueva"    icon="pi pi-plus"   type="button" [disabled]="soloLectura"  (click)="visibleNueva = true"></button>
+      <button pButton label="Eliminar" icon="pi pi-trash"  class="p-button-danger"    type="button" [disabled]="soloLectura || !banderaEliminar" (click)="eliminarPresentacion()"></button>
+      <button pButton label="Cancelar" icon="pi pi-times"  class="p-button-secondary" type="button" (click)="cerrar()"></button>
+    </div>
+  </ng-template>
+
+  <!-- Nueva Presentacion -->
+  <p-dialog
+    [(visible)]="visibleNueva"
+    header="Nueva presentación"
+    [modal]="true"
+    [closable]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '480px', height: '750px'}" 
+    (onHide)="onCancelarNueva()"
+  >
+    <div class="p-fluid grid formgrid">
+      <div class="field col-12">
+        <label for="np-id" class="block mb-2">Identificador:</label>
+        <input id="np-id" type="text" pInputText [(ngModel)]="nuevaPresentation_id" />
+      </div>
+
+      <div class="field col-12">
+        <label for="np-nombre" class="block mb-2">Nombre:</label>
+        <input id="np-nombre" type="text" pInputText [(ngModel)]="nuevaPresentation_name" />
+      </div>
+
+      <div class="field col-12">
+        <label for="np-ref" class="block mb-2">Referencia:</label>
+        <input id="np-ref" type="text" pInputText [(ngModel)]="nuevaRecipe_reference" />
+      </div>
+
+      <div class="field col-12">
+        <label for="nuevoContenido" class="block mb-2">Contenido</label>
+        <p-dropdown
+          id="nuevoContenido"
+          name="nuevoContenido"
+          [options]="comboNuevoContenido"
+          optionLabel="contenido"
+          optionValue="component_id"
+          [(ngModel)]="nuevoContenido"
+          [filter]="true"
+          [showClear]="true"
+          (onChange)="onNuevaPresentacionSeleccionada($event)"
+          placeholder="Selecciona un Elemento"
+        ></p-dropdown>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="flex justify-content-end gap-2 w-full">
+        <button pButton label="Crear"    class="p-button-success"   type="button" [disabled]="!puedeCrearNueva" (click)="crearNuevaPresentacion()"></button>
+        <button pButton label="Cancelar" class="p-button-secondary" type="button" (click)="onCancelarNueva()"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+
+</p-dialog>
+<p-confirmDialog></p-confirmDialog>

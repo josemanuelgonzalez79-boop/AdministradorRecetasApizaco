@@ -1,0 +1,39 @@
+.modal {
+  width: 520px;
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.15);
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.modal__header, .modal__footer {
+  background: #f7f7f7;
+  border-color: #e6e6e6;
+  padding: 12px 16px;
+}
+
+.modal__body { padding: 12px 16px; }
+
+.modes {
+  display: flex; gap: 16px; align-items: center; margin-bottom: 12px;
+  label { margin-right: 8px; }
+}
+
+.grid { display: grid; gap: 8px; margin-top: 8px; }
+.row {
+  display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center;
+}
+
+.block {
+  margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px;
+  legend { padding: 0 6px; color: #374151; font-weight: 600; }
+}
+.block--off { opacity: .5; }
+/* Elevar el panel del calendar por encima del p-dialog */
+.p-datepicker { z-index: 1203 !important; }
+.p-datepicker-mask { z-index: 1202 !important; }
+
+.caducidad-panel { z-index: 1203 !important; }

@@ -1,0 +1,291 @@
+BEGIN;
+
+-- 1) Columna nueva para capturar el Brix definitivo por PROCESO
+ALTER TABLE public.pb_recipes_executed
+  ADD COLUMN IF NOT EXISTS brix_user DOUBLE PRECISION;
+
+-- 1b) Flag en componentes para carga directa de agua
+ALTER TABLE public.pb_components
+  ADD COLUMN IF NOT EXISTS direct_water_load boolean DEFAULT false;
+
+-- 2) Regla simple: brix_user no negativo
+ALTER TABLE public.pb_recipes_executed
+  DROP CONSTRAINT IF EXISTS ck_pb_recipes_executed_brix_user_nonneg;
+
+ALTER TABLE public.pb_recipes_executed
+  ADD CONSTRAINT ck_pb_recipes_executed_brix_user_nonneg
+  CHECK (brix_user IS NULL OR brix_user >= 0);
+
+--------------------------------------------------------------------------------
+-- Tabla usuarios
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app_users (
+  id            SERIAL PRIMARY KEY,
+  username      VARCHAR(60) UNIQUE NOT NULL,
+  password_hash VARCHAR(100)       NOT NULL,
+  role          VARCHAR(20)        NOT NULL, -- ADMINISTRADOR / SUPERVISOR / OPERADOR
+  enabled       BOOLEAN            NOT NULL DEFAULT TRUE
+);
+
+-- CONTRASEÑAS ENCRIPTADAS (bcrypt)
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('admin', '$2a$10$eVAReKtX7g6vOQWg8NoKW.ozu7FOxmoBmVNSG/Dr1j/Q.p4cyrLrG', 'ADMINISTRADOR', true) -- *icap85*
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('super', '$2a$10$3MlTL3rk.W78BRIOg6Wmhel0TsZxWJoFAX4kRkFgHFLWAiBKT304.', 'SUPERVISOR', true) -- _paci_55
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('oper', '$2a$10$JD0KjNoZWPoO1J2aeXai8u2PefOqg7a7QjNgvKCDXMA8JIBGMv6gi', 'OPERADOR', true) -- /warner/38
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('adminUser', '$2a$10$t0zSpJ1pw1FxFoe7jEIo8.tnJlrLxvf6Lkd0tti0mEh/BOR4tW6RC', 'ADMINISTRADOR', true) -- lvmj3453**
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('supervisorUser', '$2a$10$TvPabGvT6bP7bA9S6aC7sOtNkt1hZmpV0naOTXNPMgPRSbDKLziH6', 'SUPERVISOR', true) -- 95fncv?/3
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO app_users (username, password_hash, role, enabled)
+VALUES ('operatorUser', '$2a$10$B8K4Civ4dDbOiAfnF9Llu.3a9hFN65LhrviySSuPfJ369SnNLsaeK', 'OPERADOR', true) -- 0374jgrso_
+ON CONFLICT (username) DO NOTHING;
+
+--------------------------------------------------------------------------------
+-- Tabla y vistas de progreso de recetas
+--------------------------------------------------------------------------------
+
+-- Table: public.pb_recipes_progress
+CREATE TABLE IF NOT EXISTS public.pb_recipes_progress
+(
+    process_id integer NOT NULL DEFAULT 0,
+    update_time timestamp without time zone NOT NULL DEFAULT now(),
+    "position" integer NOT NULL DEFAULT 0,
+    step integer NOT NULL DEFAULT 0,
+    manual boolean DEFAULT false,
+    water double precision DEFAULT 0,
+    CONSTRAINT pb_recipes_progress_all PRIMARY KEY (process_id, update_time, "position", step)
+)
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.pb_recipes_progress
+    OWNER TO postgres;
+
+COMMENT ON TABLE public.pb_recipes_progress
+    IS 'Concentrate dosing progress: 1: started; 2: water added. 3: concentrate added. 4: agitation done. 5: transferred.';
+
+-- View: public.pb_recipes_progress_sorted
+CREATE OR REPLACE VIEW public.pb_recipes_progress_sorted AS
+SELECT
+    process_id,
+    update_time,
+    "position",
+    step,
+    water,
+    manual
+FROM pb_recipes_progress
+ORDER BY process_id, update_time;
+
+ALTER TABLE public.pb_recipes_progress_sorted
+    OWNER TO postgres;
+
+-- View: public.pb_recipes_executed_report_pos
+CREATE OR REPLACE VIEW public.pb_recipes_executed_report_pos AS
+SELECT
+    pb_recipes_progress.process_id,
+    pb_recipes_progress."position",
+    pb_recipes_progress.manual,
+    pb_recipes_progress_water.water,
+    pb_recipes_progress.update_time
+FROM pb_recipes_progress
+JOIN (
+    SELECT
+        pb_recipes_progress_1.process_id,
+        pb_recipes_progress_1."position",
+        pb_recipes_progress_1.water
+    FROM pb_recipes_progress pb_recipes_progress_1
+    WHERE pb_recipes_progress_1.step = 2
+) pb_recipes_progress_water
+  ON pb_recipes_progress.step = 5
+ AND pb_recipes_progress.process_id = pb_recipes_progress_water.process_id
+ AND pb_recipes_progress."position" = pb_recipes_progress_water."position"
+ORDER BY pb_recipes_progress.process_id, pb_recipes_progress."position";
+
+ALTER TABLE public.pb_recipes_executed_report_pos
+    OWNER TO postgres;
+
+--------------------------------------------------------------------------------
+-- Nuevas columnas en tanks_data para cálculos
+--------------------------------------------------------------------------------
+ALTER TABLE public.tanks_data
+    ADD COLUMN IF NOT EXISTS calculated_volume double precision DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS calculated_mass   double precision DEFAULT 0;
+
+--------------------------------------------------------------------------------
+-- Vista principal de reporte: pb_recipes_executed_report_main
+-- Usa brix_user si existe; si no, el brix de la receta.
+--------------------------------------------------------------------------------
+
+DROP VIEW IF EXISTS public.pb_recipes_executed_report_main;
+
+CREATE VIEW public.pb_recipes_executed_report_main AS
+SELECT
+    re.update_time AS start_time,
+    td.update_time AS finish_time,
+    re.process_id,
+    re.prebatch,
+    re.recipe_id,
+    r.name,
+    COALESCE(re.brix_user, r.brix) AS brix,  
+    r.density,
+    CASE
+        WHEN r.type = 1 THEN 'Dietética'::text
+        WHEN r.type = 2 THEN 'Sacarosa'::text
+        WHEN r.type = 3 THEN 'Sacarosa pasteurizada'::text
+        WHEN r.type = 4 THEN 'Fructosa'::text
+        WHEN r.type = 5 THEN 'Sacarosa y fructosa'::text
+        ELSE '-'::text
+    END AS recipe_type,
+    re.units,
+    re.user_name,
+    COALESCE(tnk.tank_name, '-'::text) AS tank_name,
+
+    -- Setpoints
+    r.mass     * re.units AS mass_setpoint,
+    r.mass     * re.units / r.density AS volume_setpoint,
+    r.sucrose  * re.units AS sucrose_setpoint,
+    r.fructose * re.units AS fructose_setpoint,
+    r.water    * re.units AS water_setpoint,
+
+    -- Acumulados desde tanks_data
+    td.calculated_mass   AS mass_accum,
+    td.calculated_volume AS volume_accum,
+    td.sucrose           AS sucrose_accum,
+    td.fructose          AS fructose_accum,
+    td.water             AS water_accum
+
+FROM pb_recipes_executed re
+JOIN pb_recipes r
+  ON r.id_text = re.recipe_id
+ AND r.version = re.version
+
+-- Subconsulta original, mantenida por compatibilidad (conc_briefing)
+JOIN (
+    SELECT conc_masses.process_id,
+           conc_masses.c01_mass + conc_masses.c02_mass + conc_masses.c03_mass +
+           conc_masses.c04_mass + conc_masses.c05_mass + conc_masses.c06_mass +
+           conc_masses.c07_mass + conc_masses.c08_mass + conc_masses.c09_mass +
+           conc_masses.c10_mass + conc_masses.c11_mass + conc_masses.c12_mass +
+           conc_masses.c13_mass + conc_masses.c14_mass + conc_masses.c15_mass +
+           conc_masses.c16_mass AS conc_mass
+    FROM (
+        SELECT
+            re1.process_id,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c01_id
+                        AND c.version     = re1.c01_version), 0::double precision) AS c01_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c02_id
+                        AND c.version     = re1.c02_version), 0::double precision) AS c02_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c03_id
+                        AND c.version     = re1.c03_version), 0::double precision) AS c03_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c04_id
+                        AND c.version     = re1.c04_version), 0::double precision) AS c04_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c05_id
+                        AND c.version     = re1.c05_version), 0::double precision) AS c05_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c06_id
+                        AND c.version     = re1.c06_version), 0::double precision) AS c06_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c07_id
+                        AND c.version     = re1.c07_version), 0::double precision) AS c07_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c08_id
+                        AND c.version     = re1.c08_version), 0::double precision) AS c08_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c09_id
+                        AND c.version     = re1.c09_version), 0::double precision) AS c09_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c10_id
+                        AND c.version     = re1.c10_version), 0::double precision) AS c10_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c11_id
+                        AND c.version     = re1.c11_version), 0::double precision) AS c11_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c12_id
+                        AND c.version     = re1.c12_version), 0::double precision) AS c12_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c13_id
+                        AND c.version     = re1.c13_version), 0::double precision) AS c13_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c14_id
+                        AND c.version     = re1.c14_version), 0::double precision) AS c14_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c15_id
+                        AND c.version     = re1.c15_version), 0::double precision) AS c15_mass,
+            COALESCE((SELECT c.mass FROM pb_components c
+                      WHERE c.component_id = r1.c16_id
+                        AND c.version     = re1.c16_version), 0::double precision) AS c16_mass
+        FROM pb_recipes r1
+        JOIN pb_recipes_executed re1
+          ON r1.id_text = re1.recipe_id
+         AND r1.version = re1.version
+    ) conc_masses
+) conc_briefing
+  ON conc_briefing.process_id = re.process_id
+
+LEFT JOIN tanks tnk
+  ON tnk.tank_id = re.tank
+
+LEFT JOIN tanks_data td
+  ON td.process_id = re.process_id
+ AND td.tank_id    = re.tank
+ AND td.recipe_id  = re.recipe_id
+
+ORDER BY re.update_time;
+
+ALTER TABLE public.pb_recipes_executed_report_main
+    OWNER TO postgres;
+
+COMMIT;
+
+
+-- Vista de códigos de barra por proceso
+CREATE OR REPLACE VIEW pb_recipes_barcodes_report AS
+SELECT
+    h.process_id,
+
+    -- Este campo lo puedes usar como el número entre corchetes [....]
+    -- puede ser recipe_reference o algún ID de componente, según como
+    -- quieras mostrarlo en el encabezado
+    p.recipe_reference         AS component_ref,
+
+    p.presentation_id,
+    p.presentation_name,
+    p.units,
+
+    -- total de capturas (paquetes) de esa presentación en ese proceso
+    COUNT(*) OVER (
+        PARTITION BY h.process_id, p.recipe_reference, p.presentation_id
+    )                          AS captures,
+
+    -- datos del código tal como se escaneó
+    h.presentation_batch,
+    h.presentation_expiration,
+    h.presentation_serial,
+    h.update_time
+
+FROM pb_inventory_history              h
+JOIN pb_component_presentations_current p
+      ON p.presentation_id = h.presentation_id
+-- no pongo WHERE aquí para que la vista sirva para todos los procesos;
+-- en el reporte filtras por process_id
+ORDER BY
+    h.process_id,
+    p.recipe_reference,
+    p.presentation_id,
+    h.update_time;
