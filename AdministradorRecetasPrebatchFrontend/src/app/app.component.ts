@@ -1,6 +1,6 @@
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject, Inject, PLATFORM_ID } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { CommonModule, NgOptimizedImage, DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,6 +48,7 @@ export class AppComponent implements OnInit {
   mostrarPresentaciones = false;
   mostrarHerramientas = false;
   closeTimer: any = null;
+  temaOscuro = false;
 
   private auth = inject(AuthService);
   isAuth$: Observable<boolean> = this.auth.isAuthenticated$;
@@ -56,9 +57,26 @@ export class AppComponent implements OnInit {
     map(r => r === 'ADMINISTRADOR')
   );
 
-  constructor(private router: Router, private messageService: MessageService) {}
+  constructor(
+    private router: Router,
+    private messageService: MessageService,
+    @Inject(DOCUMENT) private document: Document,
+    @Inject(PLATFORM_ID) private platformId: object
+  ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    // Tema claro por defecto, sin alteraciones en el servidor ni backend.
+    this.temaOscuro = localStorage.getItem('icap-tema') === 'oscuro';
+    this.document.documentElement.classList.toggle('icap-dark', this.temaOscuro);
+  }
+
+  alternarTema(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.temaOscuro = !this.temaOscuro;
+    this.document.documentElement.classList.toggle('icap-dark', this.temaOscuro);
+    localStorage.setItem('icap-tema', this.temaOscuro ? 'oscuro' : 'claro');
+  }
 
   showSubmenu(menu: string): void {
     if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }

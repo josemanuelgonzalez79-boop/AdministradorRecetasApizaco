@@ -1,0 +1,29 @@
+ICAP - Mejora de PDF + tema claro/oscuro (23-11-2026)
+
+INSTALACIÓN: extrae este ZIP junto a la carpeta de tu proyecto Angular,
+arrastra AdministradorRecetasPrebatchFrontend y acepta reemplazar los archivos.
+No se ejecutan scripts ni se modifica GitHub, Spring Boot o la base de datos.
+
+Cambios:
+- Botón luna/sol en encabezado. Preferencia por navegador en localStorage (icap-tema).
+- Tema oscuro para inicio, navegación, login, modales y overlays PrimeNG.
+- PDF SIEMPRE imprimible en blanco: colores azules, mejor estructura y columna
+  adicional de diferencia informativa respecto a objetivo (NO es diagnóstico).
+- Mantiene las tablas de concentrados, posiciones Y BITÁCORA COMPLETA.
+- Reemplaza "Pendiente SCADA" con raya y una leyenda para evitar repetición.
+- No cambia valores ni calcula ciclos que el SCADA todavía no registra.
+
+Archivos reemplazados:
+- src/app/app.component.ts
+- src/app/app.component.html
+- src/app/app.component.scss
+- src/styles.scss (conserva rediseño V2 de los modales)
+- src/app/core/services/reporte-bitacora-pdf.service.ts
+Archivos NUEVOS:
+- src/icap-tema.scss
+- src/app/core/services/estilo-reporte-pdf.ts
+
+Importante: haz respaldo de cambios locales en esos archivos antes de reemplazarlos.
+Compila con npm run build dentro de AdministradorRecetasPrebatchFrontend.
+El aspecto se probó mediante revisión de código y simulación del documento,
+no mediante ejecución de tu instalación real.

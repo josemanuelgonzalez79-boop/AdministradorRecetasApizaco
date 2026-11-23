@@ -1,0 +1,218 @@
+
+/* ============================================================================
+   ICAP - Tema oscuro opcional. Activado por html.icap-dark.
+   Compatible con overlays PrimeNG que se adjuntan directamente a <body>.
+   No modifica lógica de formularios, tableros, modales, ni PDF (imprimible claro).
+   ============================================================================ */
+html.icap-dark {
+  color-scheme: dark;
+  --icap-dialog-ink: #e5edfb;
+  --icap-dialog-subtle: #a8b6cc;
+  --icap-dialog-border: #34445e;
+  --icap-dialog-border-strong: #435673;
+  --icap-dialog-page: #111b2b;
+  --icap-dialog-card: #19283c;
+  --icap-dialog-accent: #7daef4;
+  --icap-dialog-accent-light: #1f395a;
+  --icap-dialog-shadow: 0 24px 68px rgba(0, 0, 0, .47);
+}
+html.icap-dark body { background: #0e1726; color: #e5edfb; }
+html.icap-dark .admin-layout { background: linear-gradient(180deg, #111d30 0%, #0d1625 100%); }
+html.icap-dark .app-bar { background: rgba(17,28,45,.97); border-color: #2b3b54; box-shadow: 0 5px 22px #070c17a0; }
+html.icap-dark .marca__texto strong { color: #eef5ff; }
+html.icap-dark .marca__texto small { color: #a3b4d1; }
+html.icap-dark .menu-link { color: #bdcde5; }
+html.icap-dark .menu-link:hover,
+html.icap-dark .menu-link--inicio { background: #223b5e; color: #b4d5ff; }
+html.icap-dark .submenu { background: #1b2b42; border-color: #374963; box-shadow: 0 15px 40px #070e1eaa; }
+html.icap-dark .submenu button { color: #d3dff1; }
+html.icap-dark .submenu button:hover { background: #284668; color: #fff; }
+html.icap-dark .rol-indicador { color: #b2e2ca; background: #193b32; }
+html.icap-dark .btn-logout,
+html.icap-dark .btn-theme { background: #1b2b43; color: #d6e4fb; border-color: #40516c; }
+html.icap-dark .btn-logout:hover { background: #492a36; color: #ffb9c4; }
+html.icap-dark .btn-theme:hover { background: #29486b; color: #e9f7ff; border-color: #638fc5; }
+
+/* Dashboard: cards, tablas y filtros bajo una misma paleta. */
+html.icap-dark app-inicio-dashboard { color: #e4edfa; }
+html.icap-dark app-inicio-dashboard .eyebrow--oscura { color: #a4bada; }
+html.icap-dark app-inicio-dashboard h2 { color: #e8f0ff; }
+html.icap-dark app-inicio-dashboard .indicador,
+html.icap-dark app-inicio-dashboard .panel,
+html.icap-dark app-inicio-dashboard .acceso { background: #18283d; border-color: #32465f; box-shadow: 0 8px 20px #060b164d; }
+html.icap-dark app-inicio-dashboard .indicador strong,
+html.icap-dark app-inicio-dashboard .acceso span strong,
+html.icap-dark app-inicio-dashboard .nombre-receta { color: #eef5ff; }
+html.icap-dark app-inicio-dashboard .indicador__nombre,
+html.icap-dark app-inicio-dashboard .indicador small,
+html.icap-dark app-inicio-dashboard .acceso span small,
+html.icap-dark app-inicio-dashboard .panel__pie,
+html.icap-dark app-inicio-dashboard .aviso-datos,
+html.icap-dark app-inicio-dashboard .meta-consulta { color: #a4b6cf; }
+html.icap-dark app-inicio-dashboard .rango-grupo,
+html.icap-dark app-inicio-dashboard .panel__pie { background: #202f46; }
+html.icap-dark app-inicio-dashboard .rango-grupo button { color: #b5c5dd; }
+html.icap-dark app-inicio-dashboard .rango-grupo button.activo,
+html.icap-dark app-inicio-dashboard .recargar { background: #34547a; color: #edf6ff; border-color: #46668a; }
+html.icap-dark app-inicio-dashboard .etiqueta,
+html.icap-dark app-inicio-dashboard .folio { color: #b4d9ff; background: #244466; border-color: #395774; }
+html.icap-dark app-inicio-dashboard .ranking__linea span,
+html.icap-dark app-inicio-dashboard .ranking__linea strong { color: #d6e4fa; }
+html.icap-dark app-inicio-dashboard .ranking__linea span b { color: #8ca3c3; }
+html.icap-dark app-inicio-dashboard .barra { background: #334763; }
+html.icap-dark app-inicio-dashboard th { color: #c4d6f0; background: #22364f; border-color: #40516b; }
+html.icap-dark app-inicio-dashboard td { color: #ccdbf1; border-color: #314257; }
+html.icap-dark app-inicio-dashboard tbody tr:hover { background: #233953; }
+html.icap-dark app-inicio-dashboard .mensaje { background: #1e3c5a; color: #cde0ff; border-color: #345b80; }
+html.icap-dark app-inicio-dashboard .mensaje--error { background: #492a34; color: #ffd1ce; border-color: #7c3e43; }
+html.icap-dark app-inicio-dashboard .pie-inicio { color: #91a6c4; }
+html.icap-dark app-inicio-dashboard .acceso:hover { border-color: #638ebd; background: #203753; }
+
+/* Modales propios Angular. Alta especificidad para superar hojas encapsuladas. */
+html.icap-dark app-recetas > .modal,
+html.icap-dark app-usuarios > .modal,
+html.icap-dark app-componentes-modal > .modal,
+html.icap-dark app-recetas .newrec,
+html.icap-dark app-usuarios .confirm,
+html.icap-dark app-procesos-disolucion .modal.proc-modal { background: #17253a !important; color: #e8f0fe; border-color: #344760 !important; box-shadow: 0 25px 70px #030713bd !important; }
+html.icap-dark app-recetas .modal__header,
+html.icap-dark app-recetas .modal__footer,
+html.icap-dark app-recetas .newrec__header,
+html.icap-dark app-recetas .newrec__footer,
+html.icap-dark app-usuarios .modal__header,
+html.icap-dark app-usuarios .modal__footer,
+html.icap-dark app-usuarios .confirm__header,
+html.icap-dark app-usuarios .confirm__footer,
+html.icap-dark app-procesos-disolucion .modal__header,
+html.icap-dark app-procesos-disolucion .modal__footer { background: #192c43 !important; border-color: #354965 !important; color: #eaf2ff; }
+html.icap-dark app-recetas .modal__header h2,
+html.icap-dark app-usuarios .modal__header h2,
+html.icap-dark app-componentes-modal .modal h2,
+html.icap-dark app-procesos-disolucion .modal__title-block h2 { color: #edf5ff !important; }
+html.icap-dark app-recetas .modal__body,
+html.icap-dark app-usuarios .modal__body,
+html.icap-dark app-recetas .newrec__body,
+html.icap-dark app-procesos-disolucion .modal__body { background: #111d30 !important; color: #e5edfb; }
+html.icap-dark app-recetas .win,
+html.icap-dark app-recetas .win__header,
+html.icap-dark app-recetas .form,
+html.icap-dark app-recetas .box,
+html.icap-dark app-usuarios .side,
+html.icap-dark app-usuarios .detail,
+html.icap-dark app-usuarios .filters { background: #1c2d43 !important; border-color: #394d66 !important; color: #e4eefb; }
+html.icap-dark app-recetas .box__head,
+html.icap-dark app-usuarios .item--sel { background: #294463 !important; color: #d9ebff; border-color: #466385; }
+html.icap-dark app-recetas .box__row { border-color: #344962; }
+html.icap-dark app-recetas .form__label,
+html.icap-dark app-recetas .unit,
+html.icap-dark app-recetas .newrec__label,
+html.icap-dark app-recetas .muted,
+html.icap-dark app-usuarios .form__label,
+html.icap-dark app-usuarios .item__title,
+html.icap-dark app-componentes-modal label,
+html.icap-dark app-componentes-modal .bold { color: #cbdcf2 !important; }
+html.icap-dark app-usuarios .item:hover { background: #2a415d; border-color: #4f6890; }
+html.icap-dark app-recetas .modal__close,
+html.icap-dark app-usuarios .modal__close,
+html.icap-dark app-procesos-disolucion .modal__close { color: #c7d7ed; }
+html.icap-dark app-recetas .modal__close:hover,
+html.icap-dark app-usuarios .modal__close:hover,
+html.icap-dark app-procesos-disolucion .modal__close:hover { background: #335174; color: #fff; }
+
+/* Controles Angular nativos y PrimeNG. Includes Angular dialogs on body. */
+html.icap-dark app-recetas input,
+html.icap-dark app-recetas textarea,
+html.icap-dark app-recetas select,
+html.icap-dark app-componentes-modal input,
+html.icap-dark app-componentes-modal select,
+html.icap-dark app-componentes-modal textarea,
+html.icap-dark app-usuarios input,
+html.icap-dark app-procesos-disolucion input,
+html.icap-dark .p-inputtext,
+html.icap-dark .p-inputnumber-input,
+html.icap-dark .p-dropdown,
+html.icap-dark .p-multiselect { background: #202f46 !important; color: #edf4ff !important; border-color: #425874 !important; }
+html.icap-dark input:disabled,
+html.icap-dark textarea:disabled,
+html.icap-dark select:disabled,
+html.icap-dark .p-disabled { opacity: .82; }
+html.icap-dark app-recetas input:disabled,
+html.icap-dark app-componentes-modal input:disabled,
+html.icap-dark app-usuarios input:disabled { background: #253247 !important; color: #a2b4cf !important; }
+html.icap-dark input::placeholder,
+html.icap-dark textarea::placeholder,
+html.icap-dark .p-inputtext::placeholder { color: #91a7c4 !important; }
+html.icap-dark .p-dropdown .p-dropdown-label { background: transparent !important; color: #eaf2ff !important; }
+html.icap-dark .p-dropdown-trigger,
+html.icap-dark .p-dropdown-clear-icon { color: #b3c8e4; }
+html.icap-dark .p-dropdown-panel,
+html.icap-dark .p-multiselect-panel,
+html.icap-dark .p-overlaypanel,
+html.icap-dark .p-autocomplete-panel,
+html.icap-dark .p-datepicker { background: #1f3046 !important; color: #e6eefb !important; border-color: #405575 !important; box-shadow: 0 15px 35px #04091480; }
+html.icap-dark .p-dropdown-items,
+html.icap-dark .p-dropdown-item,
+html.icap-dark .p-dropdown-header,
+html.icap-dark .p-datepicker-header { background: #1f3046 !important; color: #e6eefb !important; border-color: #405575 !important; }
+html.icap-dark .p-dropdown-item:hover,
+html.icap-dark .p-dropdown-item.p-focus,
+html.icap-dark .p-dropdown-item.p-highlight { background: #35577e !important; color: #fff !important; }
+html.icap-dark .p-datepicker td > span,
+html.icap-dark .p-datepicker th,
+html.icap-dark .p-datepicker .p-datepicker-title button { color: #d7e6f8 !important; }
+html.icap-dark .p-datepicker td > span:hover,
+html.icap-dark .p-datepicker td > span.p-highlight { background: #35577e !important; color: #fff !important; }
+html.icap-dark .p-dialog,
+html.icap-dark .p-confirm-dialog { background: #192a40 !important; color: #e8f0fd !important; border-color: #42536d !important; }
+html.icap-dark .p-dialog-header,
+html.icap-dark .p-dialog-footer { background: #1b2c42 !important; border-color: #40516d !important; color: #edf5ff !important; }
+html.icap-dark .p-dialog-content,
+html.icap-dark .p-confirm-dialog .p-dialog-content { background: #152238 !important; color: #dae7fa !important; }
+html.icap-dark .p-dialog-title { color: #edf5ff !important; }
+html.icap-dark .p-dialog-header-icon,
+html.icap-dark .p-dialog-header-close { color: #d7e6fa !important; }
+html.icap-dark .p-dialog label { color: #cddbf2; }
+html.icap-dark .p-button.p-button-secondary,
+html.icap-dark app-recetas .btn:not(.btn--primary):not(.btn--danger),
+html.icap-dark app-usuarios .btn:not(.btn--primary):not(.btn--danger),
+html.icap-dark app-componentes-modal .btn:not(.save):not(.danger) { background: #293e59 !important; border-color: #4d6384 !important; color: #e9f1ff !important; }
+html.icap-dark .p-button.p-button-secondary:hover,
+html.icap-dark app-recetas .btn:not(.btn--primary):hover { background: #3a5272 !important; }
+html.icap-dark .p-dialog-mask { background: rgba(0,0,0,.65) !important; }
+html.icap-dark .p-toast-message { background: #24374d !important; color: #e5f0ff !important; border-color: #49627b !important; }
+html.icap-dark .p-toast-summary,
+html.icap-dark .p-toast-detail { color: #e8f3ff !important; }
+
+/* Componentes: la tarjeta debe tener buena lectura en tema oscuro. */
+html.icap-dark app-componentes-modal .modal-buttons,
+html.icap-dark app-componentes-modal .form-group__header { background: #1c2d43 !important; border-color: #425471; }
+html.icap-dark app-componentes-modal .form-group { color: #d9e5f7; }
+html.icap-dark app-componentes-modal .checkbox-col,
+html.icap-dark app-componentes-modal .radio-item { color: #dbe7f8; }
+html.icap-dark app-componentes-modal .dual-radio { accent-color: #85b9ff; }
+
+/* Reportes/Procesos de disolución: tabla y paginador completo. */
+html.icap-dark app-procesos-disolucion .procesos-table.p-datatable,
+html.icap-dark app-procesos-disolucion .p-datatable-wrapper,
+html.icap-dark app-procesos-disolucion .p-paginator { background: #1b2a3e !important; border-color: #354b65 !important; color: #e3ecfb !important; }
+html.icap-dark app-procesos-disolucion .p-datatable-thead > tr > th { background: #263e5a !important; color: #e2efff !important; border-color: #3b536f !important; }
+html.icap-dark app-procesos-disolucion .p-datatable-tbody > tr > td { background: #1b2b41 !important; color: #d4e1f3 !important; border-color: #30445e !important; }
+html.icap-dark app-procesos-disolucion .p-datatable-tbody > tr:hover > td { background: #2b4767 !important; }
+html.icap-dark app-procesos-disolucion .p-paginator .p-paginator-page,
+html.icap-dark app-procesos-disolucion .p-paginator button { color: #d7e6fb !important; }
+html.icap-dark app-procesos-disolucion .p-paginator .p-highlight { background: #355c84 !important; color: #fff !important; }
+html.icap-dark app-procesos-disolucion .modal__counter { background: #29405b; color: #dcecff; border-color: #44617f; }
+html.icap-dark app-procesos-disolucion .modal__title-block p,
+html.icap-dark app-procesos-disolucion .filtros__label { color: #a8bbd5; }
+
+/* Login y formularios de acceso también siguen el tema seleccionado. */
+html.icap-dark app-login .login-wrap { background: linear-gradient(160deg, #101c2d, #11182a); }
+html.icap-dark app-login .card { background: #1a2a40; border-color: #394c65; box-shadow: 0 22px 50px #05091491; }
+html.icap-dark app-login h1 { color: #edf5ff; }
+html.icap-dark app-login .field label { color: #bacbe5; }
+html.icap-dark app-login .field input { background: #233650; color: #f0f6ff; border-color: #4b6181; }
+html.icap-dark app-login .toggle { background: #293f5d; color: #e1ebfa; border-color: #536b8d; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-theme { transition: none !important; }
+}

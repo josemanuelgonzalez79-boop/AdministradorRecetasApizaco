@@ -61,6 +61,13 @@
       </nav>
 
       <div class="bar__acciones">
+        <button class="btn-theme" type="button" (click)="alternarTema()"
+          [attr.aria-label]="temaOscuro ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+          [attr.aria-pressed]="temaOscuro"
+          [title]="temaOscuro ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'">
+          <i class="pi" [ngClass]="temaOscuro ? 'pi-sun' : 'pi-moon'" aria-hidden="true"></i>
+          <span>{{ temaOscuro ? 'Claro' : 'Oscuro' }}</span>
+        </button>
         <span class="rol-indicador" *ngIf="rol$ | async as rol"><i class="pi pi-circle-fill" aria-hidden="true"></i> {{ rol | titlecase }}</span>
         <button class="btn-logout" type="button" (click)="onLogout()" title="Cerrar sesión">
           <i class="pi pi-sign-out" aria-hidden="true"></i><span>Salir</span>
