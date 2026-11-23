@@ -1,0 +1,40 @@
+ADMINISTRADOR DE RECETAS - REDISEÑO GENERAL V1
+================================================
+BASE: rama desarrollo (consulta de solo lectura el 23/11/2026).
+
+INSTALACION: SOLO ARRASTRAR Y SOLTAR
+1) Respalda tu proyecto local.
+2) Copia la carpeta AdministradorRecetasPrebatchFrontend de este ZIP sobre la carpeta homonima de tu proyecto.
+3) Acepta reemplazar los archivos existentes.
+4) Si ejecutas ng serve, reinicia si lo necesitas y fuerza actualizacion del navegador Ctrl+F5.
+
+SIN INSTALADORES, SIN INTEGRADORES, SIN CAMBIOS EN GITHUB O POSTGRESQL.
+
+CAMBIOS VISIBLES:
+- Inicio operativo con indicadores basados en reportData.
+- Accesos rapidos a Componentes, Recetas y Reportes (+ Usuarios para administradores).
+- Cabecera, navegacion y login rediseñados.
+- Indicadores de los ultimos 12 meses por defecto, alternativa de 90 dias.
+- Ranking de recetas, procesos por tanque, ultimos 6 procesos.
+- Manejo de ausencia de datos y errores de consulta.
+
+CONSERVADO SIN CAMBIOS:
+- Backend, seguridad existente, servicio ReporteService, rutas y peticiones de login.
+- Formularios y modales actuales, reporte PDF, bitacora, configuracion SCADA.
+- Opciones intencionalmente comentadas.
+
+NOTAS SOBRE DATOS:
+El total de agua es la suma de waterAccum del historial consultado (kg),
+NO implica consumo auditado ni lectura en tiempo real.
+Los datos con cantidad cero no se consideran errores automaticamente.
+La vista principal no crea ni modifica registros.
+
+PRUEBAS RECOMENDADAS ANTES DE PRODUCCION:
+- Iniciar sesion con rol OPERADOR y ADMINISTRADOR; verificar acceso a Usuarios.
+- Consultar dashboard con ambos rangos y probar todos los botones.
+- Entrar y salir de Componentes, Recetas, Procesos de disolucion.
+- Generar PDF y comprobar que se conserva la bitacora completa.
+- Probar la aplicación en 1366x768 y 1920x1080.
+
+Si hay informacion historica duplicada o anomala, revisar la base de datos:
+este dashboard no altera las consultas ni los calculos de los reportes actuales.

@@ -1,47 +1,53 @@
 <div class="login-wrap">
-  <div class="card">
-    <img src="assets/LOGO-ICAP.png" alt="ICAP" class="logo" />
-
-    <h1>Administración de Recetas</h1>
-
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <div class="field">
-        <label>Usuario</label>
-        <input
-          type="text"
-          formControlName="userName"
-          placeholder="Tu usuario"
-          autocomplete="username"
-        />
-        <small *ngIf="f.userName.touched && f.userName.invalid">
-          Ingresa un usuario válido.
-        </small>
+  <div class="login-shell">
+    <aside class="login-editorial" aria-label="Presentación de la plataforma">
+      <div class="login-editorial__marca"><span class="simbolo"><i class="pi pi-sitemap" aria-hidden="true"></i></span><strong>ICAP · INDUSTRIAL</strong></div>
+      <div class="login-editorial__texto">
+        <p class="etiqueta">ADMINISTRACIÓN DE PROCESOS</p>
+        <h2>Todo el control de tus recetas, en un mismo lugar.</h2>
+        <p>Formulación, componentes e historial de producción con una experiencia de consulta más clara.</p>
       </div>
+      <div class="login-editorial__servicios">
+        <span><i class="pi pi-book" aria-hidden="true"></i> Recetas y formulación</span>
+        <span><i class="pi pi-chart-bar" aria-hidden="true"></i> Reportes históricos</span>
+        <span><i class="pi pi-box" aria-hidden="true"></i> Gestión de componentes</span>
+      </div>
+      <span class="login-editorial__pie">Administrador de Recetas</span>
+    </aside>
 
-      <div class="field">
-        <label>Contraseña</label>
-        <div class="pass-row">
-          <input
-            [type]="showPass ? 'text' : 'password'"
-            formControlName="pass"
-            placeholder="Tu contraseña"
-            autocomplete="current-password"
-            (keyup.enter)="submit()"
-          />
-          <button type="button" class="toggle" (click)="toggleShowPass()">
-            {{ showPass ? 'Ocultar' : 'Ver' }}
+    <main class="login-panel">
+      <div class="login-panel__interior">
+        <img src="assets/LOGO-ICAP.png" alt="ICAP" class="logo" />
+        <p class="login-panel__sup">Bienvenido</p>
+        <h1>Iniciar sesión</h1>
+        <p class="login-panel__intro">Ingresa tus credenciales para acceder a la plataforma.</p>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label for="usuario">Usuario</label>
+            <div class="control"><i class="pi pi-user" aria-hidden="true"></i>
+              <input id="usuario" type="text" formControlName="userName" placeholder="Escribe tu usuario" autocomplete="username" />
+            </div>
+            <small *ngIf="f.userName.touched && f.userName.invalid">Ingresa un usuario válido.</small>
+          </div>
+          <div class="field">
+            <label for="clave">Contraseña</label>
+            <div class="control"><i class="pi pi-lock" aria-hidden="true"></i>
+              <input id="clave" [type]="showPass ? 'text' : 'password'" formControlName="pass" placeholder="Escribe tu contraseña" autocomplete="current-password" />
+              <button type="button" class="toggle" (click)="toggleShowPass()" [attr.aria-label]="showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'" [attr.aria-pressed]="showPass">
+                <i [class]="showPass ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+              </button>
+            </div>
+            <small *ngIf="f.pass.touched && f.pass.invalid">Ingresa una contraseña válida.</small>
+          </div>
+          <div class="error" role="alert" *ngIf="errorMsg"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> {{ errorMsg }}</div>
+          <button class="btn" type="submit" [disabled]="loading">
+            <i [class]="loading ? 'pi pi-spin pi-spinner' : 'pi pi-sign-in'" aria-hidden="true"></i>
+            {{ loading ? 'Validando...' : 'Entrar a la plataforma' }}
           </button>
-        </div>
-        <small *ngIf="f.pass.touched && f.pass.invalid">
-          Ingresa una contraseña válida.
-        </small>
+        </form>
+        <p class="login-panel__pie">Acceso exclusivo para usuarios autorizados.</p>
       </div>
-
-      <div class="error" *ngIf="errorMsg">{{ errorMsg }}</div>
-
-      <button class="btn" type="submit" [disabled]="loading">
-        {{ loading ? 'Validando...' : 'Entrar' }}
-      </button>
-    </form>
+    </main>
   </div>
 </div>

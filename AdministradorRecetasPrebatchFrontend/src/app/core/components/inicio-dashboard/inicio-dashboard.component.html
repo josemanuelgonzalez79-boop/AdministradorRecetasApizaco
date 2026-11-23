@@ -1,0 +1,145 @@
+<main class="inicio-shell">
+  <section class="bienvenida">
+    <div class="bienvenida__texto">
+      <p class="eyebrow"><i class="pi pi-chart-bar" aria-hidden="true"></i> PANEL DE OPERACIÓN</p>
+      <h1>Tu producción, en perspectiva.</h1>
+      <p>Consulta el historial de disoluciones y accede a formulación desde un solo lugar.</p>
+      <div class="bienvenida__acciones">
+        <button type="button" class="accion accion--primaria" (click)="abrirModulo.emit('disolucion')">
+          <i class="pi pi-file-pdf" aria-hidden="true"></i> Consultar procesos
+        </button>
+        <button type="button" class="accion accion--secundaria" (click)="abrirModulo.emit('recetas')">
+          <i class="pi pi-book" aria-hidden="true"></i> Administrar recetas
+        </button>
+      </div>
+    </div>
+    <div class="bienvenida__grafico" aria-hidden="true">
+      <div class="anillo anillo--uno"></div>
+      <div class="anillo anillo--dos"></div>
+      <div class="tarjeta-ilustracion">
+        <i class="pi pi-chart-line"></i>
+        <span>Información de procesos</span>
+        <strong>Disponible</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque-metricas" aria-labelledby="titulo-indicadores">
+    <div class="seccion-cabecera">
+      <div>
+        <p class="eyebrow eyebrow--oscura">HISTORIAL DISPONIBLE</p>
+        <h2 id="titulo-indicadores">Indicadores operativos</h2>
+      </div>
+      <div class="herramientas-resumen">
+        <div class="rango-grupo" role="group" aria-label="Período de consulta">
+          <button type="button" [class.activo]="rango === '90d'" [attr.aria-pressed]="rango === '90d'" (click)="elegirRango('90d')">90 días</button>
+          <button type="button" [class.activo]="rango === '12m'" [attr.aria-pressed]="rango === '12m'" (click)="elegirRango('12m')">12 meses</button>
+        </div>
+        <button type="button" class="recargar" (click)="consultar()" [disabled]="cargando" aria-label="Actualizar indicadores" title="Actualizar indicadores">
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="mensaje mensaje--error" role="alert" *ngIf="errorConsulta">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      No se pudo consultar el historial. Puedes volver a intentar con el botón de actualizar.
+    </div>
+    <div class="mensaje" *ngIf="cargando" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Consultando información...</div>
+
+    <div class="indicadores">
+      <article class="indicador indicador--azul">
+        <span class="indicador__icono"><i class="pi pi-list" aria-hidden="true"></i></span>
+        <span class="indicador__nombre">Procesos registrados</span>
+        <strong>{{ totalProcesos | number:'1.0-0' }}</strong>
+        <small>Folios únicos en el período</small>
+      </article>
+      <article class="indicador indicador--violeta">
+        <span class="indicador__icono"><i class="pi pi-book" aria-hidden="true"></i></span>
+        <span class="indicador__nombre">Recetas utilizadas</span>
+        <strong>{{ totalRecetas | number:'1.0-0' }}</strong>
+        <small>Recetas distintas</small>
+      </article>
+      <article class="indicador indicador--verde">
+        <span class="indicador__icono"><i class="pi pi-building" aria-hidden="true"></i></span>
+        <span class="indicador__nombre">Tanques registrados</span>
+        <strong>{{ totalTanques | number:'1.0-0' }}</strong>
+        <small>Con al menos un proceso</small>
+      </article>
+      <article class="indicador indicador--ambar">
+        <span class="indicador__icono"><i class="pi pi-percentage" aria-hidden="true"></i></span>
+        <span class="indicador__nombre">Agua acumulada reportada</span>
+        <strong>{{ aguaAcumulada | number:'1.0-0' }} <em>kg</em></strong>
+        <small>Suma de registros, no consumo auditado</small>
+      </article>
+    </div>
+    <p class="aviso-datos" *ngIf="!cargando && !errorConsulta && totalProcesos === 0">No se encontraron procesos en el período seleccionado. Prueba otro rango.</p>
+    <p class="meta-consulta" *ngIf="actualizado && !errorConsulta">Última actualización: {{ actualizado | date:'dd/MM/yyyy HH:mm' }} · El resumen procede del historial del sistema, no del SCADA en tiempo real.</p>
+  </section>
+
+  <section class="analitica-grid">
+    <article class="panel panel--ranking">
+      <div class="panel__titulo">
+        <div><p class="eyebrow eyebrow--oscura">ANÁLISIS DE USO</p><h2>Recetas más preparadas</h2></div>
+        <span class="etiqueta">Top 5</span>
+      </div>
+      <div class="ranking" *ngIf="recetas.length; else sinRecetas">
+        <div class="ranking__fila" *ngFor="let item of recetas; let i = index">
+          <div class="ranking__linea"><span><b>{{ i + 1 }}.</b> {{ item.nombre }}</span><strong>{{ item.total }}</strong></div>
+          <div class="barra"><span class="barra__fill" [style.width.%]="item.porcentaje"></span></div>
+        </div>
+      </div>
+      <ng-template #sinRecetas><p class="sin-datos">Sin datos para construir el ranking.</p></ng-template>
+    </article>
+
+    <article class="panel panel--tanques">
+      <div class="panel__titulo">
+        <div><p class="eyebrow eyebrow--oscura">DISTRIBUCIÓN</p><h2>Actividad por tanque</h2></div>
+        <span class="etiqueta">Procesos</span>
+      </div>
+      <div class="ranking" *ngIf="tanques.length; else sinTanques">
+        <div class="ranking__fila" *ngFor="let item of tanques">
+          <div class="ranking__linea"><span>{{ item.nombre }}</span><strong>{{ item.total }}</strong></div>
+          <div class="barra barra--tanque"><span class="barra__fill" [style.width.%]="item.porcentaje"></span></div>
+        </div>
+      </div>
+      <ng-template #sinTanques><p class="sin-datos">Aún no hay tanques con actividad en este período.</p></ng-template>
+    </article>
+  </section>
+
+  <section class="panel panel--actividad">
+    <div class="panel__titulo panel__titulo--actividad">
+      <div><p class="eyebrow eyebrow--oscura">TRAZABILIDAD</p><h2>Últimos procesos del período</h2></div>
+      <button type="button" class="enlace-modulo" (click)="abrirModulo.emit('disolucion')">Ver historial <i class="pi pi-arrow-right" aria-hidden="true"></i></button>
+    </div>
+    <div class="tabla-scroll" *ngIf="procesos.length; else sinProcesos">
+      <table>
+        <thead><tr><th>Folio</th><th>Fecha</th><th>Receta</th><th>Tanque</th><th>Agua reportada (kg)</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let p of procesos | slice:0:6">
+            <td><span class="folio">#{{ p.processId }}</span></td>
+            <td>{{ p.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><div class="nombre-receta">{{ p.name || 'Sin nombre' }}</div><small>{{ p.recipeId }}</small></td>
+            <td>{{ p.tankName }}</td>
+            <td class="numero">{{ p.waterAccum | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #sinProcesos><p class="sin-datos">No hay procesos recientes para mostrar en este período.</p></ng-template>
+    <div class="panel__pie" *ngIf="totalProcesos > 0">
+      {{ conAgua }} de {{ totalProcesos }} procesos registran agua mayor que cero. Un valor cero no implica necesariamente un fallo.
+    </div>
+  </section>
+
+  <section class="accesos" aria-labelledby="titulo-accesos">
+    <div><p class="eyebrow eyebrow--oscura">ACCESOS DIRECTOS</p><h2 id="titulo-accesos">Herramientas de trabajo</h2></div>
+    <div class="accesos__grid">
+      <button type="button" class="acceso" (click)="abrirModulo.emit('componentes')"><i class="pi pi-box" aria-hidden="true"></i><span><strong>Componentes</strong><small>Catálogo y propiedades</small></span><i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+      <button type="button" class="acceso" (click)="abrirModulo.emit('recetas')"><i class="pi pi-book" aria-hidden="true"></i><span><strong>Recetas</strong><small>Consulta y formulación</small></span><i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+      <button type="button" class="acceso" (click)="abrirModulo.emit('disolucion')"><i class="pi pi-file-pdf" aria-hidden="true"></i><span><strong>Reportes</strong><small>Procesos y PDFs</small></span><i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+      <button type="button" class="acceso" *ngIf="puedeAdministrarUsuarios" (click)="abrirModulo.emit('usuarios')"><i class="pi pi-users" aria-hidden="true"></i><span><strong>Usuarios</strong><small>Administración de accesos</small></span><i class="pi pi-arrow-up-right" aria-hidden="true"></i></button>
+    </div>
+  </section>
+  <footer class="pie-inicio">Administrador de Recetas · Panel de consulta histórica</footer>
+</main>

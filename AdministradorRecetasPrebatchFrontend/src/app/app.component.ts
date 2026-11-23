@@ -11,10 +11,10 @@ import { RecetasComponent } from './core/services/components/recetas-modal/recet
 import { ProcesosDisolucionComponent } from './core/services/components/procesos-disolucion/procesos-disolucion.component';
 import { AuthService } from './core/services/auth.service';
 import { map, Observable } from 'rxjs';
-import { UsuariosComponent } from "./core/components/usuarios/usuarios.component";
-import { PresentacionesComponent } from "./core/services/components/presentaciones/presentaciones.component";
-import { HerramientasComponent } from "./core/services/components/herramientas/herramientas.component";
-
+import { UsuariosComponent } from './core/components/usuarios/usuarios.component';
+import { PresentacionesComponent } from './core/services/components/presentaciones/presentaciones.component';
+import { HerramientasComponent } from './core/services/components/herramientas/herramientas.component';
+import { InicioDashboardComponent } from './core/components/inicio-dashboard/inicio-dashboard.component';
 
 @Component({
   selector: 'app-root',
@@ -32,15 +32,14 @@ import { HerramientasComponent } from "./core/services/components/herramientas/h
     ProcesosDisolucionComponent,
     UsuariosComponent,
     PresentacionesComponent,
-    NgOptimizedImage,
-    HerramientasComponent
-],
+    HerramientasComponent,
+    InicioDashboardComponent
+  ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  providers: [MessageService],
+  providers: [MessageService]
 })
 export class AppComponent implements OnInit {
-  // estado UI
   visibleMenu: string | null = null;
   mostrarModal = false;
   mostrarRecetas = false;
@@ -51,9 +50,8 @@ export class AppComponent implements OnInit {
   closeTimer: any = null;
 
   private auth = inject(AuthService);
-
   isAuth$: Observable<boolean> = this.auth.isAuthenticated$;
-
+  rol$ = this.auth.role$;
   isAdmin$: Observable<boolean> = this.auth.role$.pipe(
     map(r => r === 'ADMINISTRADOR')
   );
@@ -78,12 +76,21 @@ export class AppComponent implements OnInit {
   }
 
   @HostListener('document:click', ['$event'])
-  onDocClick(e: MouseEvent) {
+  onDocClick(e: MouseEvent): void {
     const target = e.target as HTMLElement;
     if (!target.closest('.menu')) this.visibleMenu = null;
   }
 
-  // Navegación / Modales 
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.visibleMenu = null;
+  }
+
+  irInicio(): void {
+    this.visibleMenu = null;
+    this.cerrarModalComponentes();
+  }
+
   navegar(ruta: string): void {
     this.visibleMenu = null;
 
@@ -92,12 +99,11 @@ export class AppComponent implements OnInit {
       this.mostrarUsuarios = true;
       return;
     }
-
     if (ruta === 'componentes') { this.mostrarModal = true; return; }
-    if (ruta === 'recetas')     { this.mostrarRecetas = true; return; }
-    if (ruta === 'disolucion')  { this.mostrarProcesos = true; return; }
-    if (ruta === 'presentaciones')  { this.mostrarPresentaciones = true; return; }
-    if (ruta === 'herramientas') {this.mostrarHerramientas = true; return; }
+    if (ruta === 'recetas') { this.mostrarRecetas = true; return; }
+    if (ruta === 'disolucion') { this.mostrarProcesos = true; return; }
+    if (ruta === 'presentaciones') { this.mostrarPresentaciones = true; return; }
+    if (ruta === 'herramientas') { this.mostrarHerramientas = true; return; }
 
     this.router.navigate([`/${ruta}`]);
   }
@@ -111,16 +117,13 @@ export class AppComponent implements OnInit {
     this.mostrarHerramientas = false;
   }
 
-  // Logout 
-  onLogout() {
+  onLogout(): void {
     this.auth.logout();
     this.router.navigateByUrl('/login');
   }
 
   onImprimir(payload: any): void {
-
-    const detalle =
-    payload?.modo === 'ARBITRARIAS'
+    const detalle = payload?.modo === 'ARBITRARIAS'
       ? `Arbitrarias — ID: ${payload?.producto ?? ''}`
       : `Aleatorias — ${payload?.etiquetasAProducir} etiqueta(s)`;
     this.messageService.add({
@@ -130,8 +133,5 @@ export class AppComponent implements OnInit {
       life: 2500,
       key: 'top-right'
     });
-
   }
-
-  
 }
