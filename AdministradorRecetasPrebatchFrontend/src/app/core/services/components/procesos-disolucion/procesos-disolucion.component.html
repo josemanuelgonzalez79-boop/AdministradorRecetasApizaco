@@ -8,116 +8,132 @@
     aria-labelledby="titulo-procesos"
     (click)="$event.stopPropagation()"
   >
-    <div class="modal__header">
-      <h2 id="titulo-procesos">Procesos de disolución</h2>
-      <button class="modal__close" aria-label="Cerrar" (click)="onClose()">×</button>
-    </div>
+    <header class="modal__header">
+      <div class="modal__title-block">
+        <h2 id="titulo-procesos">Procesos de disolución</h2>
+        <p>Consulta el historial y abre el detalle con doble clic sobre un proceso.</p>
+      </div>
+      <div class="modal__header-right">
+        <span class="modal__counter">{{ filteredProcesos.length }} de {{ procesos.length }} procesos</span>
+        <button type="button" class="modal__close" aria-label="Cerrar" (click)="onClose()">×</button>
+      </div>
+    </header>
 
-    <!-- tabla -->
     <div class="modal__body">
       <p-table
-        [value]="filteredProcesos"  
+        [value]="filteredProcesos"
         [paginator]="true"
         [rows]="20"
+        [rowsPerPageOptions]="[20, 50, 100]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Registros {first} a {last} de {totalRecords}"
+        sortField="fecha"
+        [sortOrder]="-1"
+        sortMode="single"
         [resizableColumns]="true"
-        responsiveLayout="scroll"
-        class="procesos-table"
+        columnResizeMode="expand"
+        [scrollable]="true"
+        scrollHeight="flex"
+        [tableStyle]="{'min-width': '1100px'}"
+        styleClass="procesos-table"
       >
         <ng-template pTemplate="header">
           <tr>
-            <th>Tiempo</th>
-            <th>Folio</th>
-            <th>PB</th>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Tanque</th>
-            <th>Sacarosa</th>
-            <th>Fructosa</th>
-            <th>Agua</th>
+            <th pResizableColumn pSortableColumn="fecha" class="col-tiempo">
+              Tiempo <p-sortIcon field="fecha"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="processId" class="col-folio col-center">
+              Folio <p-sortIcon field="processId"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="prebatch" class="col-pb col-center">
+              PB <p-sortIcon field="prebatch"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="recipeId" class="col-codigo">
+              Código <p-sortIcon field="recipeId"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="name" class="col-nombre">
+              Nombre <p-sortIcon field="name"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="tankName" class="col-tanque">
+              Tanque <p-sortIcon field="tankName"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="sucroseAccum" class="col-num">
+              Sacarosa <p-sortIcon field="sucroseAccum"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="fructoseAccum" class="col-num">
+              Fructosa <p-sortIcon field="fructoseAccum"></p-sortIcon>
+            </th>
+            <th pResizableColumn pSortableColumn="waterAccum" class="col-num">
+              Agua <p-sortIcon field="waterAccum"></p-sortIcon>
+            </th>
           </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-row>
-          <tr (dblclick)="openIndividual(row)" class="row-dblclick">
-            <td>{{ row.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
-            <td>{{ row.processId }}</td>
-            <td>{{ row.prebatch }}</td>
-            <td>{{ row.recipeId }}</td>
-            <td>{{ row.name }}</td>
-            <td>{{ row.tankName }}</td>
-            <td>{{ row.sucroseAccum | number:'1.2-2' }}</td>
-            <td>{{ row.fructoseAccum | number:'1.2-2' }}</td>
-            <td>{{ row.waterAccum | number:'1.2-2' }}</td>
+          <tr class="row-dblclick" (dblclick)="openIndividual(row)" title="Doble clic para ver el reporte">
+            <td class="col-tiempo">{{ row.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td class="col-center col-folio"><span class="folio-chip">{{ row.processId }}</span></td>
+            <td class="col-center col-pb">{{ row.prebatch }}</td>
+            <td class="col-codigo">{{ row.recipeId }}</td>
+            <td class="col-nombre" [title]="row.name">{{ row.name }}</td>
+            <td class="col-tanque">{{ row.tankName }}</td>
+            <td class="col-num">{{ row.sucroseAccum | number:'1.2-2' }}</td>
+            <td class="col-num">{{ row.fructoseAccum | number:'1.2-2' }}</td>
+            <td class="col-num">{{ row.waterAccum | number:'1.2-2' }}</td>
           </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="9" class="empty-state">No se encontraron procesos con los filtros seleccionados.</td></tr>
         </ng-template>
       </p-table>
     </div>
 
-    <!-- pie de pagina -->
-    <div class="modal__footer filtros">
-      <div class="filtros__row">
-
-        <!-- Fechas -->
-        <div class="filtros__grupo filtros__grupo--fechas">
+    <footer class="modal__footer filtros">
+      <div class="filtros__fields">
+        <div class="filtros__field filtros__field--fecha">
+          <label for="fecha-proceso-inicio">Desde</label>
           <p-calendar
+            inputId="fecha-proceso-inicio"
             [(ngModel)]="fechaInicio"
             dateFormat="dd/mm/yy"
             appendTo="body"
+            [baseZIndex]="4000"
+            [showIcon]="true"
           ></p-calendar>
-          <span class="filtros__label">al</span>
+        </div>
+        <div class="filtros__field filtros__field--fecha">
+          <label for="fecha-proceso-fin">Hasta</label>
           <p-calendar
+            inputId="fecha-proceso-fin"
             [(ngModel)]="fechaFin"
             dateFormat="dd/mm/yy"
             appendTo="body"
+            [baseZIndex]="4000"
+            [showIcon]="true"
           ></p-calendar>
         </div>
-
-        <!-- Receta / Tanque -->
-        <div class="filtros__grupo filtros__grupo--texto">
-          <input
-            type="text"
-            pInputText                         
-            [(ngModel)]="recetaFilter"
-            (ngModelChange)="aplicarFiltros()"
-            placeholder="Receta"
-          />
-
-          <input
-            type="text"
-            pInputText
-            [(ngModel)]="tankFilter"
-            (ngModelChange)="aplicarFiltros()"
-            placeholder="Tanque"
-          />
+        <div class="filtros__field filtros__field--texto">
+          <label for="filtro-proceso-receta">Receta / nombre</label>
+          <input id="filtro-proceso-receta" type="text" pInputText
+            [(ngModel)]="recetaFilter" (ngModelChange)="aplicarFiltros()"
+            placeholder="Buscar receta" />
         </div>
-
-        <!-- Botones -->
-        <div class="filtros__grupo filtros__grupo--botones">
-          <button
-            pButton
-            type="button"
-            label="Consultar"
-            (click)="buscarProcesos()"
-          ></button>
-
-          <button
-            pButton
-            type="button"
-            label="Imprimir"
-            (click)="previewPdf()"
-            [disabled]="!filteredProcesos.length"
-          ></button>
-
-          <button
-            pButton
-            type="button"
-            label="Cancelar"
-            class="p-button-secondary"
-            (click)="onClose()"
-          ></button>
+        <div class="filtros__field filtros__field--texto">
+          <label for="filtro-proceso-tanque">Tanque</label>
+          <input id="filtro-proceso-tanque" type="text" pInputText
+            [(ngModel)]="tankFilter" (ngModelChange)="aplicarFiltros()"
+            placeholder="Buscar tanque" />
         </div>
-
       </div>
-    </div>
+      <div class="filtros__actions">
+        <button pButton type="button" label="Limpiar" class="p-button-outlined p-button-secondary"
+          (click)="recetaFilter = ''; tankFilter = ''; aplicarFiltros()"></button>
+        <button pButton type="button" label="Consultar" (click)="buscarProcesos()"></button>
+        <button pButton type="button" label="Imprimir" class="p-button-outlined"
+          (click)="previewPdf()" [disabled]="!filteredProcesos.length"></button>
+        <button pButton type="button" label="Cerrar" class="p-button-secondary" (click)="onClose()"></button>
+      </div>
+    </footer>
   </div>
 </ng-container>
