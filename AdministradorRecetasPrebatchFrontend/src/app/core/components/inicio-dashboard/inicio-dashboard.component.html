@@ -1,28 +1,5 @@
 <main class="inicio-shell">
-  <section class="bienvenida">
-    <div class="bienvenida__texto">
-      <p class="eyebrow"><i class="pi pi-chart-bar" aria-hidden="true"></i> PANEL DE OPERACIÓN</p>
-      <h1>Tu producción, en perspectiva.</h1>
-      <p>Consulta el historial de disoluciones y accede a formulación desde un solo lugar.</p>
-      <div class="bienvenida__acciones">
-        <button type="button" class="accion accion--primaria" (click)="abrirModulo.emit('disolucion')">
-          <i class="pi pi-file-pdf" aria-hidden="true"></i> Consultar procesos
-        </button>
-        <button type="button" class="accion accion--secundaria" (click)="abrirModulo.emit('recetas')">
-          <i class="pi pi-book" aria-hidden="true"></i> Administrar recetas
-        </button>
-      </div>
-    </div>
-    <div class="bienvenida__grafico" aria-hidden="true">
-      <div class="anillo anillo--uno"></div>
-      <div class="anillo anillo--dos"></div>
-      <div class="tarjeta-ilustracion">
-        <i class="pi pi-chart-line"></i>
-        <span>Información de procesos</span>
-        <strong>Disponible</strong>
-      </div>
-    </div>
-  </section>
+
 
   <section class="bloque-metricas" aria-labelledby="titulo-indicadores">
     <div class="seccion-cabecera">
@@ -74,7 +51,6 @@
       </article>
     </div>
     <p class="aviso-datos" *ngIf="!cargando && !errorConsulta && totalProcesos === 0">No se encontraron procesos en el período seleccionado. Prueba otro rango.</p>
-    <p class="meta-consulta" *ngIf="actualizado && !errorConsulta">Última actualización: {{ actualizado | date:'dd/MM/yyyy HH:mm' }} · El resumen procede del historial del sistema, no del SCADA en tiempo real.</p>
   </section>
 
   <section class="analitica-grid">
