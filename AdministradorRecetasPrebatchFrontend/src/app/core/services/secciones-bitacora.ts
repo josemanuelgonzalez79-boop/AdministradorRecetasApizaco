@@ -2,8 +2,9 @@ import { ReportConcItem, ReportPosItem } from '../../interfaces/ReporteIndividua
 import { ReportLogItem } from '../../interfaces/ReporteBitacora';
 
 /**
- * La tabla consolidada sustituye POSICIONES y COMPONENTES POR POSICIÓN.
- * La bitácora solo describe eventos realmente guardados en el SCADA.
+ * Secciones exclusivamente nuevas para el reporte de disolución.
+ * Una posición ocupa UNA sola fila en el resumen, aunque tenga varios componentes.
+ * Los eventos de inicio NO significan que un ciclo haya concluido.
  */
 export interface SeccionesBitacora {
   resumen: any[];
@@ -16,16 +17,10 @@ export function crearSeccionesBitacora(
   eventos: ReportLogItem[]
 ): SeccionesBitacora {
   const titulo = (text: string) => ({
-    text,
-    bold: true,
-    fontSize: 10,
-    margin: [0, 10, 0, 4]
+    text, bold: true, fontSize: 10, margin: [0, 10, 0, 4]
   });
-  const header = (text: string) => ({
-    text,
-    bold: true,
-    color: '#344054',
-    fillColor: '#EEF2F6'
+  const columna = (text: string) => ({
+    text, bold: true, color: '#344054', fillColor: '#EEF2F6'
   });
   const formato = (value: number, decimales = 2) =>
     new Intl.NumberFormat('es-MX', {
@@ -37,75 +32,84 @@ export function crearSeccionesBitacora(
     const seg = Math.max(0, Math.round(valor));
     return `${pad(Math.floor(seg / 3600))}:${pad(Math.floor((seg % 3600) / 60))}:${pad(seg % 60)}`;
   };
-  const eventosPorPosicion = new Map<number, ReportLogItem[]>();
-  const componentesPorPosicion = new Map<number, ReportConcItem[]>();
-  const registroPorPosicion = new Map<number, ReportPosItem>();
+  const hora = (valor: string) => /\d{2}:\d{2}:\d{2}/.exec(valor ?? '')?.[0] ?? '—';
 
-  for (const componente of concentrados) {
-    if (componente.pos <= 0 || !componente.id || componente.id === '-') continue;
-    const grupo = componentesPorPosicion.get(componente.pos) ?? [];
-    grupo.push(componente);
-    componentesPorPosicion.set(componente.pos, grupo);
+  const componentes = new Map<number, ReportConcItem[]>();
+  for (const c of concentrados) {
+    if (!Number.isFinite(c.pos) || c.pos <= 0 || !c.id || c.id === '-') continue;
+    const arr = componentes.get(c.pos) ?? [];
+    arr.push(c);
+    componentes.set(c.pos, arr);
   }
-  for (const registro of posicionesRegistradas) {
-    if (registro.position <= 0) continue;
-    const anterior = registroPorPosicion.get(registro.position);
-    // Si existen varios pasos, no sobrescribir el agua con eventos sin volumen.
-    if (!anterior || (registro.water > 0 && anterior.water <= 0)) {
-      registroPorPosicion.set(registro.position, registro);
+
+  const posiciones = new Map<number, ReportPosItem>();
+  for (const p of posicionesRegistradas) {
+    if (!Number.isFinite(p.position) || p.position <= 0) continue;
+    const anterior = posiciones.get(p.position);
+    // Algunos procesos tienen varios renglones de avance por una misma posición.
+    // No sustituir el valor de agua registrado por otro renglón con cero.
+    if (!anterior || (p.water > 0 && anterior.water <= 0)) {
+      posiciones.set(p.position, p);
     }
   }
-  for (const evento of eventos) {
-    if (evento.position <= 0) continue;
-    const grupo = eventosPorPosicion.get(evento.position) ?? [];
-    grupo.push(evento);
-    eventosPorPosicion.set(evento.position, grupo);
+
+  const eventosPorPosicion = new Map<number, ReportLogItem[]>();
+  for (const e of eventos) {
+    if (!Number.isFinite(e.position) || e.position <= 0) continue;
+    const arr = eventosPorPosicion.get(e.position) ?? [];
+    arr.push(e);
+    eventosPorPosicion.set(e.position, arr);
   }
 
-  const numerosPosicion = Array.from(new Set([
-    ...componentesPorPosicion.keys(),
-    ...registroPorPosicion.keys(),
-    ...eventosPorPosicion.keys()
-  ])).sort((a, b) => a - b);
+  const numeros = [...new Set<number>([
+    ...componentes.keys(), ...posiciones.keys(), ...eventosPorPosicion.keys()
+  ])].sort((a, b) => a - b);
 
   const cuerpoResumen: any[][] = [[
-    header('Pos.'), header('Componentes'), header('Procesamiento'),
-    header('Agua (L)'), header('Duración'), header('Ciclos')
+    columna('Pos.'), columna('Componentes'), columna('Procesamiento'),
+    columna('Agua (L)'), columna('Duración'), columna('Ciclos')
   ]];
 
-  for (const numero of numerosPosicion) {
-    const lista = componentesPorPosicion.get(numero) ?? [];
-    const registros = eventosPorPosicion.get(numero) ?? [];
-    const estado = registroPorPosicion.get(numero);
-    const completas = registros.filter(e => e.step === 5 && e.durationSeconds != null);
-    const ciclos = new Set(registros
+  for (const pos of numeros) {
+    const comps = componentes.get(pos) ?? [];
+    const registro = posiciones.get(pos);
+    const historial = eventosPorPosicion.get(pos) ?? [];
+    const transferencias = historial.filter(e => e.step === 5);
+    const duraciones = transferencias.filter(e => e.durationSeconds != null);
+    const ciclosConcluidos = new Set(transferencias
       .map(e => e.cycleNumber)
-      .filter((c): c is number => c != null && c > 0));
-    // NULL significa "el SCADA aún no registró este dato"; jamás inventar ciclos.
-    const tiempo = completas.length
-      ? duracion(completas.reduce((acc, item) => acc + (item.durationSeconds ?? 0), 0))
-      : 'Pendiente';
-    const estadoTexto = estado?.manual ? 'Omitido'
-      : registros.some(e => e.step === 5) ? 'Transferido'
-      : estado || registros.length ? 'Registrado' : 'Sin registro';
+      .filter((v): v is number => v != null && v > 0));
+
+    // No sumar tiempo sin cierre, ni inferir ciclos de los eventos step=1.
+    const tiempo = duraciones.length === transferencias.length && duraciones.length > 0
+      ? duracion(duraciones.reduce((s, e) => s + (e.durationSeconds ?? 0), 0))
+      : 'Pendiente SCADA';
+    const ciclos = ciclosConcluidos.size > 0 ? String(ciclosConcluidos.size) : 'Pendiente SCADA';
+    const estado = registro?.manual ? 'Omitido'
+      : transferencias.length ? 'Transferido'
+      : (registro || historial.length) ? 'Registrado' : 'Sin registro';
 
     cuerpoResumen.push([
-      { text: String(numero), alignment: 'center' },
-      lista.map(c => c.name).filter(Boolean).join(', ') || '—',
-      { text: estadoTexto, alignment: 'center' },
-      { text: estado ? `${formato(estado.water)} L` : '—', alignment: 'right' },
-      { text: tiempo, alignment: 'center', color: tiempo === 'Pendiente' ? '#667085' : undefined },
-      { text: ciclos.size ? String(ciclos.size) : 'Pendiente', alignment: 'center', color: ciclos.size ? undefined : '#667085' }
+      { text: String(pos), alignment: 'center' },
+      comps.map(c => c.name).filter(Boolean).join(', ') || '—',
+      { text: estado, alignment: 'center' },
+      { text: registro ? `${formato(registro.water)} L` : '—', alignment: 'right' },
+      { text: tiempo, alignment: 'center', color: tiempo === 'Pendiente SCADA' ? '#667085' : '#344054' },
+      { text: ciclos, alignment: 'center', color: ciclos === 'Pendiente SCADA' ? '#667085' : '#344054' }
     ]);
   }
-  if (cuerpoResumen.length === 1) {
-    cuerpoResumen.push([{ text: 'Sin posiciones registradas', colSpan: 6 }, {}, {}, {}, {}, {}]);
+
+  if (!numeros.length) {
+    cuerpoResumen.push([
+      { text: 'No hay posiciones registradas para este proceso', colSpan: 6 },
+      {}, {}, {}, {}, {}
+    ]);
   }
 
   const estiloTabla = {
     hLineColor: '#D9E0E8',
     vLineColor: '#D9E0E8',
-    fillColor: (indice: number) => indice > 0 && indice % 2 === 0 ? '#FAFBFC' : null,
+    fillColor: (i: number) => i > 0 && i % 2 === 0 ? '#FAFBFC' : null,
     paddingLeft: () => 4,
     paddingRight: () => 4,
     paddingTop: () => 4,
@@ -113,81 +117,78 @@ export function crearSeccionesBitacora(
   };
 
   const resumen: any[] = [
-    titulo('RESUMEN DE POSICIONES DE TRANSFERENCIA'),
+    titulo('POSICIONES Y COMPONENTES'),
     {
       table: {
         headerRows: 1,
-        widths: [29, '*', 75, 70, 68, 47],
+        widths: [29, '*', 75, 68, 75, 61],
+        dontBreakRows: true,
         body: cuerpoResumen
       },
       layout: estiloTabla,
-      fontSize: 8,
-      margin: [0, 0, 0, 3]
+      fontSize: 8.2,
+      margin: [0, 0, 0, 2]
     },
     {
-      text: 'Agua (L): valor registrado por posición. Duración y ciclos: pendientes de instrumentación SCADA.',
+      text: 'Agua: valor registrado por posición Duración y ciclos: pendientes de SCADA.',
       italics: true,
       color: '#667085',
       fontSize: 7.5,
-      margin: [0, 2, 0, 5]
+      margin: [0, 2, 0, 2]
     }
   ];
 
-  if (!eventos.length) {
-    return {
-      resumen,
-      bitacora: [
-        titulo('BITÁCORA DE PROCESAMIENTO'),
-        { text: 'Sin eventos históricos registrados para este proceso.', fontSize: 9, color: '#667085' }
-      ]
-    };
-  }
-
   const ordenados = [...eventos].sort((a, b) =>
-    a.updateTime.localeCompare(b.updateTime) || a.position - b.position || a.step - b.step
+    (a.updateTime ?? '').localeCompare(b.updateTime ?? '') || a.position - b.position || a.step - b.step
   );
-  const soloInicios = ordenados.every(e => e.step === 1);
-  const hora = (valor: string) => /\d{2}:\d{2}:\d{2}/.exec(valor)?.[0] ?? '—';
 
-  // En registros antiguos como el proceso 218 solo hay step=1.
-  // No imprimir de nuevo la misma lista de posiciones y componentes.
-  if (soloInicios) {
-    const primera = hora(ordenados[0].updateTime);
-    const ultima = hora(ordenados[ordenados.length - 1].updateTime);
+  if (!ordenados.length) {
     return {
       resumen,
       bitacora: [
         titulo('BITÁCORA DE PROCESAMIENTO'),
-        {
-          text: `${ordenados.length} evento(s) de inicio registrados entre ${primera} y ${ultima}. ` +
-            'No hay pasos posteriores guardados; la bitácora detallada estará disponible cuando el SCADA los registre.',
-          color: '#667085',
-          fontSize: 8.5,
-          margin: [0, 0, 0, 5]
-        }
+        { text: 'Sin eventos históricos registrados para este proceso.', color: '#667085', fontSize: 8.5 }
       ]
     };
   }
 
-  const etiquetasPaso: Record<number, string> = {
+  const nombresPaso: Record<number, string> = {
     1: 'Iniciado', 2: 'Agua cargada', 3: 'Concentrados agregados',
     4: 'Agitación concluida', 5: 'Concentrados transferidos'
   };
+  // Conservar la BITÁCORA COMPLETA, incluso si SCADA solamente registró
+  // eventos de inicio (step=1). Es una cronología, no un resumen de posiciones.
+  // El agua del resumen es distinta del agua real de cada evento.
   const cuerpoBitacora: any[][] = [[
-    header('Hora'), header('Pos.'), header('Paso'), header('Unidad'),
-    header('Ciclo'), header('Agua real (kg)'), header('Meta (kg)')
+    columna('Hora'), columna('Pos.'), columna('Componente'),
+    columna('Unidad'), columna('Paso'), columna('Ciclo'),
+    columna('Agua (kg)'), columna('Meta (kg)')
   ]];
-  for (const evento of ordenados) {
+
+  for (const e of ordenados) {
+    const nombres = (componentes.get(e.position) ?? [])
+      .map(c => c.name)
+      .filter(Boolean)
+      .join(', ') || '—';
+
     cuerpoBitacora.push([
-      hora(evento.updateTime),
-      { text: String(evento.position), alignment: 'center' },
-      etiquetasPaso[evento.step] ?? `Paso ${evento.step}`,
-      evento.unitName ?? '—',
-      { text: evento.cycleNumber == null ? '—' : String(evento.cycleNumber), alignment: 'center' },
-      { text: evento.actualWaterKg == null ? '—' : formato(evento.actualWaterKg, 4), alignment: 'right' },
-      { text: evento.metaKg == null ? '—' : formato(evento.metaKg, 4), alignment: 'right' }
+      hora(e.updateTime),
+      { text: String(e.position), alignment: 'center' },
+      nombres,
+      e.unitName || 'Pendiente',
+      nombresPaso[e.step] ?? `Paso ${e.step}`,
+      { text: e.cycleNumber == null ? 'Pendiente' : String(e.cycleNumber), alignment: 'center' },
+      {
+        text: e.actualWaterKg == null ? 'Pendiente SCADA' : formato(e.actualWaterKg, 4),
+        alignment: 'right'
+      },
+      {
+        text: e.metaKg == null ? 'Pendiente SCADA' : formato(e.metaKg, 4),
+        alignment: 'right'
+      }
     ]);
   }
+
   return {
     resumen,
     bitacora: [
@@ -195,18 +196,20 @@ export function crearSeccionesBitacora(
       {
         table: {
           headerRows: 1,
-          widths: [53, 29, '*', 56, 34, 75, 70],
+          widths: [44, 27, 110, 52, 84, 42, 69, 69],
+          dontBreakRows: true,
           body: cuerpoBitacora
         },
+        fontSize: 7.3,
         layout: estiloTabla,
-        fontSize: 7.5
+        margin: [0, 0, 0, 3]
       },
       {
-        text: '— = dato no disponible en SCADA. El agua configurada no se presenta como agua real.',
-        color: '#667085',
+        text: 'Pendiente SCADA: dato histórico no disponible. El agua por posición no se asume dosificada en cada evento.',
         italics: true,
-        fontSize: 7.5,
-        margin: [0, 3, 0, 5]
+        color: '#667085',
+        fontSize: 7.2,
+        margin: [0, 2, 0, 4]
       }
     ]
   };
