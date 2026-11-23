@@ -1,9 +1,8 @@
 :root {
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans",
-                 "Helvetica Neue", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+                 "Helvetica Neue", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
-/* You can add global styles to this file, and also import other style files */
 @import "primeng/resources/themes/lara-light-blue/theme.css";
 @import "primeng/resources/primeng.min.css";
 @import "primeicons/primeicons.css";
@@ -11,17 +10,543 @@
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
-// Garantiza que el panel del dropdown quede por encima del modal/backdrop 
-//Asegura que cualquier overlay de PrimeNG se pinte encima del modal/backdrop 
+/* Overlays PrimeNG: por encima de las ventanas de la aplicación. */
 .p-dropdown-panel,
 .p-multiselect-panel,
 .p-calendar .p-datepicker,
 .p-datepicker,
 .p-overlaypanel,
-.p-autocomplete-panel {
-  z-index: 7000 !important;   
+.p-autocomplete-panel { z-index: 7000 !important; }
+.p-toast { z-index: 12000 !important; }
+
+/* ========================================================================
+   ICAP | DISEÑO COHERENTE DE MODALES — V2
+   Solo estilos. NO modifica la lógica de recetas, componentes ni usuarios.
+   Se usan selectores por componente para no afectar Procesos de disolución.
+   ======================================================================== */
+:root {
+  --icap-dialog-ink: #20344d;
+  --icap-dialog-subtle: #61738c;
+  --icap-dialog-border: #dce5f0;
+  --icap-dialog-border-strong: #ccd9e8;
+  --icap-dialog-page: #f6f8fc;
+  --icap-dialog-card: #fff;
+  --icap-dialog-accent: #2563c6;
+  --icap-dialog-accent-light: #ebf3ff;
+  --icap-dialog-shadow: 0 26px 70px rgba(20, 44, 78, .25), 0 6px 18px rgba(20, 44, 78, .09);
 }
 
-.p-toast {
-  z-index: 12000 !important;
+/* El encabezado del inicio nunca debe quedar encima de una ventana abierta. */
+.admin-layout.has-modal > .app-bar { z-index: 0 !important; }
+
+/* Los backdrops dejan ver la portada sin competir visualmente con el diálogo. */
+app-recetas .modal-backdrop:not(.backdrop--nueva),
+app-componentes-modal .modal-overlay,
+app-usuarios .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 32, 55, .48);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+/* Recetas usa variables z-index declaradas en CSS encapsulado; aseguramos valores reales. */
+app-recetas .modal-backdrop:not(.backdrop--nueva) { z-index: 1000 !important; }
+app-componentes-modal .modal-overlay { z-index: 1000 !important; }
+app-usuarios .modal-backdrop { z-index: 900 !important; }
+
+/* ------------------------------ RECETAS ---------------------------------- */
+app-recetas > .modal {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: auto !important;
+  transform: none !important;
+  width: min(1040px, calc(100vw - 36px)) !important;
+  max-width: calc(100vw - 36px) !important;
+  height: min(91dvh, 930px) !important;
+  max-height: calc(100dvh - 32px) !important;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 16px;
+  box-shadow: var(--icap-dialog-shadow);
+  z-index: 1001 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+app-recetas .modal__header,
+app-usuarios .modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 17px 25px;
+  background: #fff;
+  border-bottom: 1px solid var(--icap-dialog-border);
+}
+app-recetas .modal__header h2,
+app-usuarios .modal__header h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+  line-height: 1.3;
+  color: var(--icap-dialog-ink);
+  letter-spacing: -.02em;
+}
+app-recetas .modal__close,
+app-usuarios .modal__close,
+app-recetas .newrec__close {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #5c6c82;
+  font-size: 25px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+app-recetas .modal__close:hover,
+app-usuarios .modal__close:hover,
+app-recetas .newrec__close:hover { background: #edf3fc; color: #153e77; }
+app-recetas .modal__close:focus-visible,
+app-usuarios .modal__close:focus-visible,
+app-recetas .newrec__close:focus-visible { outline: 2px solid #3c82e5; outline-offset: 2px; }
+
+app-recetas .modal__body,
+app-usuarios .modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  overflow: auto;
+  background: var(--icap-dialog-page);
+  scrollbar-color: #c1ccd9 transparent;
+  scrollbar-width: thin;
+}
+app-recetas .modal__footer,
+app-usuarios .modal__footer {
+  flex: 0 0 auto;
+  min-height: 68px;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 24px;
+  background: #fff;
+  border-top: 1px solid var(--icap-dialog-border);
+}
+app-recetas .win {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 9px rgba(24,54,87,.035);
+}
+app-recetas .win__header {
+  min-height: 66px;
+  padding: 12px 18px;
+  box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid var(--icap-dialog-border);
+}
+app-recetas .win__header .dropdown-estilizado,
+app-recetas .win__header .p-dropdown,
+app-recetas .form__field .dropdown-estilizado,
+app-recetas .form__field .p-dropdown {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+app-recetas .form {
+  grid-template-columns: minmax(135px, 170px) minmax(0, 1fr);
+  gap: 12px 20px;
+  padding: 20px 22px 23px;
+  box-sizing: border-box;
+  background: #fff;
+}
+app-recetas .form__label { color: #465c77; font-size: 12.5px; font-weight: 700; }
+app-recetas .form__field { min-width: 0; }
+app-recetas .input,
+app-recetas .select,
+app-recetas textarea.input {
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid var(--icap-dialog-border-strong);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--icap-dialog-ink);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color .15s, box-shadow .15s;
+}
+app-recetas .input:focus,
+app-recetas .select:focus,
+app-recetas textarea.input:focus {
+  outline: 0;
+  border-color: #72a8e9;
+  box-shadow: 0 0 0 3px rgba(42, 113, 213, .12);
+}
+app-recetas .input:disabled,
+app-recetas .select:disabled {
+  background: #f2f5f9;
+  color: #738198;
+  opacity: 1;
+}
+app-recetas .box {
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 10px;
+  background: #fff;
+}
+app-recetas .box__head { background: #eff4fa; color: #334963; border-color: var(--icap-dialog-border); }
+app-recetas .box__row { border-color: #e9eff6; }
+app-recetas .unit { color: #536780; font-size: 12px; }
+app-recetas .muted { color: #71839a; }
+app-recetas .btn,
+app-usuarios .btn {
+  min-height: 37px;
+  padding: 8px 16px;
+  border: 1px solid #d8e1ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #435875;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+app-recetas .btn:hover,
+app-usuarios .btn:hover { background: #eef4fc; border-color: #b9cde8; }
+app-recetas .btn--primary,
+app-usuarios .btn--primary {
+  background: #2869c9;
+  border-color: #2869c9;
+  color: #fff;
+}
+app-recetas .btn--primary:hover,
+app-usuarios .btn--primary:hover { background: #1756b2; border-color: #1756b2; color: #fff; }
+app-recetas .btn--danger,
+app-usuarios .btn--danger {
+  background: #fff3f4;
+  border-color: #f8c9cf;
+  color: #b52e40;
+}
+app-recetas .btn--danger:hover,
+app-usuarios .btn--danger:hover { background: #ffe8eb; border-color: #f3b2bc; }
+app-recetas .btn:disabled,
+app-usuarios .btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+
+/* Submodal Nueva Receta: siempre encima del principal, sin salir del visor. */
+app-recetas .backdrop--nueva { z-index: 2000 !important; background: rgba(13,25,43,.48); }
+app-recetas .newrec {
+  z-index: 2100 !important;
+  width: min(840px, calc(100vw - 36px));
+  max-width: calc(100vw - 36px);
+  max-height: calc(100dvh - 36px);
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 16px;
+  box-shadow: var(--icap-dialog-shadow);
+}
+app-recetas .newrec__header,
+app-recetas .newrec__footer { background: #fff; border-color: var(--icap-dialog-border); padding: 16px 22px; }
+app-recetas .newrec__header { color: var(--icap-dialog-ink); font-size: 17px; }
+app-recetas .newrec__body { min-height: 0; background: var(--icap-dialog-page); padding: 18px 22px; }
+app-recetas .newrec__form { gap: 12px 16px; }
+app-recetas .newrec__label { font-size: 12.5px; color: #455b76; font-weight: 650; }
+
+/* ----------------------------- COMPONENTES ------------------------------ */
+app-componentes-modal > .modal {
+  position: fixed !important;
+  inset: 0 auto auto 50% !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, calc(100vw - 36px)) !important;
+  max-width: calc(100vw - 36px) !important;
+  height: min(91dvh, 930px) !important;
+  max-height: calc(100dvh - 32px) !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  overflow: hidden !important;
+  background: #fff;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 16px;
+  box-shadow: var(--icap-dialog-shadow);
+  font-size: 13px;
+  z-index: 1001 !important;
+}
+app-componentes-modal > .modal > h2 {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 20px 28px 18px;
+  border-bottom: 1px solid var(--icap-dialog-border);
+  background: #fff;
+  color: var(--icap-dialog-ink);
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.02em;
+}
+app-componentes-modal > .modal > .form-group {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 17px 28px 15px;
+  background: #fff;
+  border-bottom: 1px solid var(--icap-dialog-border);
+}
+app-componentes-modal > .modal > form {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 20px 28px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--icap-dialog-page);
+  scrollbar-color: #c1ccd9 transparent;
+  scrollbar-width: thin;
+}
+app-componentes-modal .form-group { min-width: 0; margin-bottom: 14px; }
+app-componentes-modal .form-group > label,
+app-componentes-modal .form-group .bold {
+  color: #465b76;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+app-componentes-modal .form-group input:not([type='radio']):not([type='checkbox']),
+app-componentes-modal .form-group select,
+app-componentes-modal .form-group textarea {
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--icap-dialog-border-strong);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--icap-dialog-ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+app-componentes-modal .form-group input:focus,
+app-componentes-modal .form-group select:focus,
+app-componentes-modal .form-group textarea:focus {
+  outline: none;
+  border-color: #72a8e9;
+  box-shadow: 0 0 0 3px rgba(42, 113, 213, .12);
+}
+app-componentes-modal .form-group input:disabled,
+app-componentes-modal .form-group select:disabled,
+app-componentes-modal .form-group textarea:disabled { background: #eef2f7; color: #718198; }
+app-componentes-modal .dual-grid,
+app-componentes-modal .form-group__header,
+app-componentes-modal .checkbox-columns { column-gap: clamp(20px, 4vw, 52px); }
+app-componentes-modal .dual-radio { accent-color: #2869c9; }
+app-componentes-modal .checkbox-item,
+app-componentes-modal .radio-item { color: #4a5e76; }
+app-componentes-modal .modal-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  position: sticky;
+  bottom: -24px;
+  z-index: 2;
+  margin: 22px -28px -24px;
+  padding: 13px 28px;
+  box-sizing: border-box;
+  background: #fff;
+  border-top: 1px solid var(--icap-dialog-border);
+  box-shadow: 0 -5px 14px rgba(23,45,73,.035);
+}
+app-componentes-modal .modal-buttons .btn {
+  width: auto;
+  min-width: 90px;
+  min-height: 37px;
+  padding: 8px 16px;
+  border: 1px solid #d8e1ed;
+  border-radius: 9px;
+  background: #fff;
+  color: #425873;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+app-componentes-modal .modal-buttons .btn:hover { background: #eef4fc; }
+app-componentes-modal .modal-buttons .btn.save { background: #2869c9; border-color: #2869c9; color: white; }
+app-componentes-modal .modal-buttons .btn.save:hover { background: #1756b2; }
+app-componentes-modal .modal-buttons .btn.danger { background: #fff3f4; color: #b52e40; border-color: #f8c9cf; }
+app-componentes-modal .modal-buttons .btn.danger:hover { background: #ffe8eb; }
+app-componentes-modal .modal-buttons .btn:disabled { opacity: .48; cursor: not-allowed; }
+
+/* ------------------------------- USUARIOS -------------------------------- */
+app-usuarios > .modal {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: auto !important;
+  transform: none !important;
+  width: min(1100px, calc(100vw - 36px)) !important;
+  max-width: calc(100vw - 36px) !important;
+  height: min(88dvh, 830px) !important;
+  max-height: calc(100dvh - 32px) !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 16px;
+  box-shadow: var(--icap-dialog-shadow);
+  box-sizing: border-box;
+  z-index: 1001 !important;
+}
+app-usuarios .modal__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+app-usuarios .layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  gap: 14px;
+}
+app-usuarios .side,
+app-usuarios .detail {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(20,42,75,.03);
+}
+app-usuarios .side { display: flex; flex-direction: column; overflow: hidden; }
+app-usuarios .filters {
+  background: #fff;
+  border-bottom: 1px solid var(--icap-dialog-border);
+  padding: 13px;
+  gap: 9px;
+}
+app-usuarios .list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+app-usuarios .item { border-radius: 9px; }
+app-usuarios .item--sel { background: #eaf2ff; border-color: #bed3f6; box-shadow: none; }
+app-usuarios .item:hover { background: #edf5ff; border-color: #c5d9f5; }
+app-usuarios .item__title { color: var(--icap-dialog-ink); }
+app-usuarios .detail { padding: 22px; overflow-y: auto; }
+app-usuarios .form { grid-template-columns: minmax(85px,125px) minmax(0,1fr); gap: 14px 17px; }
+app-usuarios .form__label { color: #465b76; font-size: 12.5px; }
+app-usuarios .input,
+app-usuarios .confirm__input-row .input {
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid var(--icap-dialog-border-strong);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff;
+  color: var(--icap-dialog-ink);
+}
+app-usuarios .input:disabled { background: #f2f5f9; color: #6a7d95; }
+app-usuarios .input:focus { outline: 0; border-color: #72a8e9; box-shadow: 0 0 0 3px rgba(42, 113, 213, .12); }
+app-usuarios .modal__footer { justify-content: space-between; }
+app-usuarios .confirm { border-radius: 14px; border: 1px solid var(--icap-dialog-border); }
+app-usuarios .confirm__header,
+app-usuarios .confirm__footer { background: #fff; border-color: var(--icap-dialog-border); }
+
+/* --------------------- DIÁLOGOS SECUNDARIOS PRIMENG ----------------------- */
+.p-dialog:not(.p-datepicker) {
+  border: 1px solid var(--icap-dialog-border);
+  border-radius: 14px;
+  box-shadow: var(--icap-dialog-shadow);
+  overflow: hidden;
+}
+.p-dialog .p-dialog-header {
+  background: #fff;
+  border-bottom: 1px solid var(--icap-dialog-border);
+  padding: 17px 22px;
+}
+.p-dialog .p-dialog-header .p-dialog-title { color: var(--icap-dialog-ink); font-size: 17px; font-weight: 750; }
+.p-dialog .p-dialog-content { background: #f9fbfe; color: #364960; padding: 18px 22px; }
+.p-dialog .p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 20px;
+  border-top: 1px solid var(--icap-dialog-border);
+  background: #fff;
+}
+.p-dialog .p-dialog-footer .p-button { border-radius: 9px; }
+.p-dialog .p-dialog-content input.p-inputtext,
+.p-dialog .p-dialog-content textarea.p-inputtext,
+.p-dialog .p-dialog-content .p-dropdown { border-radius: 8px; border-color: var(--icap-dialog-border-strong); }
+
+/* -------------- RESTO DE MODALES DE FORMULACIÓN (FUTUROS) -------------- */
+app-presentaciones .p-dialog,
+app-herramientas .p-dialog { border-radius: 14px; }
+app-herramientas .block { border-color: var(--icap-dialog-border); border-radius: 10px; }
+
+@media (max-width: 900px) {
+  app-recetas .form { grid-template-columns: minmax(105px,135px) minmax(0,1fr); gap: 10px 13px; }
+  app-componentes-modal .dual-grid,
+  app-componentes-modal .form-group__header,
+  app-componentes-modal .checkbox-columns { column-gap: 20px; }
+  app-usuarios .layout { grid-template-columns: minmax(220px,280px) minmax(0,1fr); }
+}
+@media (max-width: 650px) {
+  app-recetas > .modal,
+  app-componentes-modal > .modal,
+  app-usuarios > .modal { width: calc(100vw - 16px) !important; max-width: calc(100vw - 16px) !important; max-height: calc(100dvh - 16px) !important; height: calc(100dvh - 16px) !important; border-radius: 12px; }
+  app-recetas .modal__header,
+  app-usuarios .modal__header { padding: 13px 16px; min-height: 60px; }
+  app-recetas .modal__body,
+  app-usuarios .modal__body { padding: 12px; }
+  app-recetas .modal__footer,
+  app-usuarios .modal__footer { padding: 10px 12px; min-height: 56px; }
+  app-recetas .form { grid-template-columns: 1fr; padding: 15px; gap: 6px; }
+  app-recetas .form__label { margin-top: 6px; }
+  app-recetas .input--sm { max-width: 100%; }
+  app-recetas .win__header { padding: 10px 12px; }
+  app-recetas .newrec { width: calc(100vw - 16px); max-width: calc(100vw - 16px); }
+  app-recetas .newrec__form { grid-template-columns: 1fr; }
+  app-componentes-modal > .modal > h2 { padding: 16px; }
+  app-componentes-modal > .modal > .form-group { padding: 13px 16px; }
+  app-componentes-modal > .modal > form { padding: 14px 16px 18px; }
+  app-componentes-modal .dual-grid,
+  app-componentes-modal .form-group__header,
+  app-componentes-modal .checkbox-columns { grid-template-columns: 1fr; row-gap: 10px; }
+  app-componentes-modal .modal-buttons { margin: 18px -16px -18px; bottom: -18px; padding: 12px 16px; justify-content: flex-end; }
+  app-usuarios .layout { grid-template-columns: 1fr; height: auto; overflow: auto; }
+  app-usuarios .side { min-height: 190px; max-height: 230px; }
+  app-usuarios .detail { padding: 15px; }
+  app-usuarios .form { grid-template-columns: 92px minmax(0,1fr); gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  app-recetas .btn, app-usuarios .btn,
+  app-recetas .modal__close, app-usuarios .modal__close { transition: none; }
 }
