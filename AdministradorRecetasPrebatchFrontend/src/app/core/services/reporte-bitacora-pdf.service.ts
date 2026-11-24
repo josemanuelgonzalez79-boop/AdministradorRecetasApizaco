@@ -6,6 +6,7 @@ import { mejorarEstiloReporteDisolucion } from './estilo-reporte-pdf';
 import { ReportMain, ReportConcItem, ReportPosItem } from '../../interfaces/ReporteIndividual';
 import { ReportLogItem } from '../../interfaces/ReporteBitacora';
 
+/** Mantiene el PDF existente, unifica posiciones y conserva la bitácora completa. */
 @Injectable({ providedIn: 'root' })
 export class ReporteBitacoraPdfService {
   constructor(private readonly pdfActual: ReportePdfService) {}
@@ -32,17 +33,30 @@ export class ReporteBitacoraPdfService {
         ? elemento.text.trim().toUpperCase()
         : null;
     const contenido: any[] = documento.content;
-    const indice = contenido.findIndex(e => tituloDe(e) === 'POSICIONES');
-    if (indice < 0 || !contenido[indice + 1]?.table) {
+    const indicePosiciones = contenido.findIndex(e => tituloDe(e) === 'POSICIONES');
+    if (indicePosiciones < 0 || !contenido[indicePosiciones + 1]?.table) {
       throw new Error('No se encontró la tabla POSICIONES original; se canceló el PDF para evitar duplicados');
     }
 
     const secciones = crearSeccionesBitacora(conc, pos, eventos);
-    contenido.splice(indice, 2, ...secciones.resumen);
+    // El reporte base aún construye CONCENTRADOS y POSICIONES por separado.
+    // Eliminamos POSICIONES primero para no alterar el índice de CONCENTRADOS.
+    contenido.splice(indicePosiciones, 2);
+    const indiceConcentrados = contenido.findIndex(e => tituloDe(e) === 'CONCENTRADOS');
+    if (indiceConcentrados >= 0) {
+      if (!contenido[indiceConcentrados + 1]?.table) {
+        throw new Error('La sección CONCENTRADOS original no tiene tabla');
+      }
+      contenido.splice(indiceConcentrados, 2, ...secciones.resumen);
+    } else {
+      // Un reporte sin componentes todavía conserva sus posiciones/eventos.
+      contenido.splice(indicePosiciones, 0, ...secciones.resumen);
+    }
 
     const titulosAntiguos = new Set([
       'COMPONENTES POR POSICIÓN DE TRANSFERENCIA',
       'RESUMEN DE POSICIONES DE TRANSFERENCIA',
+      'POSICIONES Y COMPONENTES',
       'BITÁCORA DE PROCESAMIENTO'
     ]);
     for (let i = contenido.length - 1; i >= 0; i--) {
@@ -52,14 +66,21 @@ export class ReporteBitacoraPdfService {
     contenido.push(...secciones.bitacora);
 
     const titulos = contenido.map(tituloDe).filter((v): v is string => v != null);
-    const cantidad = titulos.filter(t => t === 'POSICIONES Y COMPONENTES').length;
-    const antigua = titulos.some(t => t === 'POSICIONES' || t === 'COMPONENTES POR POSICIÓN DE TRANSFERENCIA');
+    const cantidad = titulos.filter(t => t === 'POSICIONES Y CONCENTRADOS').length;
+    const antigua = titulos.some(t => t === 'POSICIONES' || t === 'CONCENTRADOS' ||
+      t === 'POSICIONES Y COMPONENTES' || t === 'COMPONENTES POR POSICIÓN DE TRANSFERENCIA');
     const bitacoras = titulos.filter(t => t === 'BITÁCORA DE PROCESAMIENTO').length;
     if (cantidad !== 1 || antigua || bitacoras !== 1) {
       throw new Error('Validación del reporte: se detectaron secciones repetidas; PDF no generado');
     }
 
+    // Se mantiene la vista previa con doble clic y se agrega descarga nombrada.
     mejorarEstiloReporteDisolucion(documento, main, secciones);
+    // El bloque fusionado pasa a la primera hoja, debajo de DATOS DE RECETA.
+    // La bitácora se mantiene completa y comienza en hoja aparte para facilitar
+    // su lectura, sin alterar el contenido ni el orden cronológico.
+    delete secciones.resumen[0].pageBreak;
+    if (secciones.bitacora[0]) secciones.bitacora[0].pageBreak = 'before';
     this.ajustarAlineacion(documento, secciones);
     this.quitarNotasBajoTablas(documento, secciones);
     const nombre = `Proceso_Disolucion_${main.processId}.pdf`;
@@ -74,10 +95,12 @@ export class ReporteBitacoraPdfService {
     else pdf.open();
   }
 
+  /** Las notas pequeñas debajo de las tres tablas sobran en la versión imprimible. */
   private quitarNotasBajoTablas(documento: any, secciones: {
     resumen: any[];
     bitacora: any[];
   }): void {
+    // La nota posterior a datos de receta la inserta estilo-reporte-pdf.
     const texto = (x: any): string => typeof x?.text === 'string' ? x.text.trim() : '';
     const notasSecciones = new Set<any>([
       ...secciones.resumen.filter(x => x?.italics),
@@ -92,7 +115,13 @@ export class ReporteBitacoraPdfService {
     });
   }
 
-
+  /**
+   * Datos básicos en rejilla común y ajustes de alineación:
+   * - Las dos filas de datos del proceso comparten las mismas 3 columnas.
+   * - Icono y texto quedan juntos, especialmente en «Fecha fin».
+   * - La bitácora aprovecha el mismo ancho disponible que las otras tablas.
+   * - Las cabeceras numéricas siguen la alineación de sus valores.
+   */
   private ajustarAlineacion(documento: any, secciones: {
     resumen: any[];
     bitacora: any[];
@@ -103,6 +132,8 @@ export class ReporteBitacoraPdfService {
       item.text.trim().toUpperCase() === 'DATOS DE RECETA'
     );
 
+    // La corrección de fecha final NO depende de iconos ni tablas anidadas:
+    // una única tabla de 3 columnas presenta ambas filas con idénticas coordenadas.
     if (indiceDatos >= 3) {
       const superior = elementos[indiceDatos - 2];
       const inferior = elementos[indiceDatos - 1];

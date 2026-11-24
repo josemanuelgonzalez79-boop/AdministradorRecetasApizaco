@@ -65,8 +65,10 @@ export function crearSeccionesBitacora(
     ...componentes.keys(), ...posiciones.keys(), ...eventosPorPosicion.keys()
   ])].sort((a, b) => a - b);
 
+  // Una posición por fila. Cada concentrado conserva su ID, descripción y
+  // masa INDIVIDUAL tal como la devolvió reportConc (sin sumar ni recalcular).
   const cuerpoResumen: any[][] = [[
-    columna('Pos.'), columna('Componentes'), columna('Procesamiento'),
+    columna('Pos.'), columna('Concentrados y masa'), columna('Procesamiento'),
     columna('Agua (L)'), columna('Duración'), columna('Ciclos')
   ]];
 
@@ -89,9 +91,45 @@ export function crearSeccionesBitacora(
       : transferencias.length ? 'Transferido'
       : (registro || historial.length) ? 'Registrado' : 'Sin registro';
 
+    // Minilista dentro de una sola celda: facilita distinguir dos o más
+    // concentrados en la MISMA posición sin repetir estado, agua ni ciclos.
+    // La masa NO se multiplica por unidades porque se conserva el valor que
+    // originalmente mostraba la tabla CONCENTRADOS.
+    const detalleConcentrados: any = comps.length ? {
+      table: {
+        widths: ['*', 52],
+        body: comps.map(c => [
+          {
+            stack: [
+              { text: c.id, bold: true, fontSize: 7.1, color: '#885533' },
+              { text: c.name || '—', fontSize: 7.7, color: '#253035' }
+            ],
+            margin: [0, 1, 3, 1]
+          },
+          {
+            text: `${formato(c.mass)} kg`,
+            alignment: 'right',
+            noWrap: true,
+            fontSize: 7.5,
+            color: '#253035',
+            margin: [0, 3, 0, 1]
+          }
+        ])
+      },
+      layout: {
+        hLineWidth: (i: number) => i > 0 && i < comps.length ? 0.4 : 0,
+        vLineWidth: () => 0,
+        hLineColor: () => '#DDD9D3',
+        paddingTop: () => 1,
+        paddingBottom: () => 1,
+        paddingLeft: () => 0,
+        paddingRight: () => 0
+      }
+    } : { text: '—', color: '#77838F' };
+
     cuerpoResumen.push([
       { text: String(pos), alignment: 'center' },
-      comps.map(c => c.name).filter(Boolean).join(', ') || '—',
+      detalleConcentrados,
       { text: estado, alignment: 'center' },
       { text: registro ? `${formato(registro.water)} L` : '—', alignment: 'right' },
       { text: tiempo, alignment: 'center', color: tiempo === 'Pendiente SCADA' ? '#667085' : '#344054' },
@@ -117,7 +155,7 @@ export function crearSeccionesBitacora(
   };
 
   const resumen: any[] = [
-    titulo('POSICIONES Y COMPONENTES'),
+    titulo('POSICIONES Y CONCENTRADOS'),
     {
       table: {
         headerRows: 1,
@@ -130,7 +168,7 @@ export function crearSeccionesBitacora(
       margin: [0, 0, 0, 2]
     },
     {
-      text: 'Agua: valor registrado por posición Duración y ciclos: pendientes de SCADA.',
+      text: 'Agua: valor registrado por posición (no necesariamente dosificado). Duración y ciclos: pendientes de SCADA.',
       italics: true,
       color: '#667085',
       fontSize: 7.5,
