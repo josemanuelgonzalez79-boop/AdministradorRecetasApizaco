@@ -289,3 +289,38 @@ ORDER BY
     p.recipe_reference,
     p.presentation_id,
     h.update_time;
+
+
+-- PROPUESTA: revisar y probar antes de ejecutar en planta.
+CREATE TABLE public.pb_recipes_position_cycles (
+    process_id integer NOT NULL,
+    execution_position integer NOT NULL,
+    visual_position integer NOT NULL,
+    cycle_number integer NOT NULL,
+    unit_name varchar(20) NOT NULL,
+    started_at timestamp,
+    finished_at timestamp,
+
+    CONSTRAINT pk_pb_position_cycles
+        PRIMARY KEY (
+            process_id,
+            execution_position,
+            cycle_number
+        ),
+
+    CONSTRAINT fk_pb_position_cycles_process
+        FOREIGN KEY (process_id)
+        REFERENCES public.pb_recipes_executed(process_id),
+
+    CONSTRAINT ck_pb_position_cycle_number
+        CHECK (cycle_number > 0),
+
+    CONSTRAINT ck_pb_position_cycle_dates
+        CHECK (
+            finished_at IS NULL
+            OR (
+                started_at IS NOT NULL
+                AND finished_at >= started_at
+            )
+        )
+);
