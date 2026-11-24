@@ -1,0 +1,51 @@
+ICAP | Análisis histórico de recetas - avance 1
+===============================================
+
+ORIGEN
+- Revisión de rama desarrollo, commit 7b3ebf76b995c26388bc4c5c7e76c6291b5c135b.
+- Solo lectura de GitHub. No se crearon ramas ni commits.
+
+INSTALACIÓN (ARRASTRAR Y SOLTAR)
+1. Descomprime el ZIP en la carpeta que contiene:
+   AdministradorRecetasPrebatchFrontend y AdministradorRecetasPrebatchBackend.
+2. Permite sobrescribir los archivos app.component.ts y app.component.html.
+3. Los demás archivos son nuevos; no eliminan nada del proyecto.
+4. Compila y reinicia backend Spring Boot para registrar reportAnalysis.
+5. Compila o reinicia Angular. Menú Reportes > Análisis histórico de recetas.
+
+ARCHIVOS EN EL ZIP
+- Backend: src/main/java/com/icap/controller/AnalisisHistoricoController.java (NUEVO)
+- Frontend: src/app/core/components/analisis-historico/*.ts, *.html, *.scss (NUEVOS)
+- Frontend: src/app/app.component.ts, src/app/app.component.html (REEMPLAZAR)
+
+QUÉ HACE
+- Obtiene las recetas del período usando el endpoint reportData que ya existe.
+- Solicita los detalles de una receta al nuevo endpoint POST /api/v1/recetPrebatch/reportAnalysis.
+- Consulta la vista pb_recipes_executed_report_main SIN escribir datos.
+- Compara metas frente a los acumulados reportados de masa, agua, volumen,
+  fructosa y sacarosa. La variación porcentual se calcula por proceso como
+  ((acumulado - meta) / meta) * 100, solo para metas > 0.
+- Presenta promedios descriptivos por tanque y una gráfica cronológica.
+- Exporta los folios filtrados a CSV (UTF-8, separador punto y coma).
+- Identifica explícitamente cuando los resultados exceden 500 registros.
+
+NOTAS / LIMITACIONES
+- Indicadores DESCRIPTIVOS; no son validaciones de calidad ni consumo auditado.
+- Meta cero o faltante => porcentaje no calculable (—).
+- Gráfica muestra hasta 30 puntos muestreados de forma cronológica; las tablas
+  y promedios usan todos los folios retornados por la consulta (hasta 500).
+- No modifica el SCADA, Flyway, PostgreSQL ni los PDF existentes.
+- El endpoint es de lectura; la protección de rutas Spring Security del sistema
+  actual requiere trabajo separado ANTES DE EXPONER DATOS EN PRODUCCIÓN.
+- No se ha compilado contra todas las dependencias locales Angular/Spring Boot.
+  Se validaron sintaxis TS/Java (esta última con clases simuladas de Spring) y
+  cálculos básicos del módulo; es necesario probar integrado en tu entorno.
+
+PRUEBAS RECOMENDADAS
+1. Elegir la receta CIEL EXPRIM JAMAICA y verificar los folios reportados.
+2. Filtrar por tanque. Comprobar que el número de procesos disminuye.
+3. Cambiar entre Masa/Agua/Volumen/Fructosa/Sacarosa.
+4. Abrir CSV con Excel y confirmar encabezados, decimales y fechas.
+5. Cambiar el tema oscuro y comprobar el contraste.
+6. Comparar metas y valores de un folio contra su PDF original.
+7. Confirmar que recetas con meta=0 muestren — en la variación porcentual.

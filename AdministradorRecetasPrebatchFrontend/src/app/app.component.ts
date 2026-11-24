@@ -15,6 +15,7 @@ import { UsuariosComponent } from './core/components/usuarios/usuarios.component
 import { PresentacionesComponent } from './core/services/components/presentaciones/presentaciones.component';
 import { HerramientasComponent } from './core/services/components/herramientas/herramientas.component';
 import { InicioDashboardComponent } from './core/components/inicio-dashboard/inicio-dashboard.component';
+import { AnalisisHistoricoComponent } from './core/components/analisis-historico/analisis-historico.component';
 
 @Component({
   selector: 'app-root',
@@ -33,7 +34,8 @@ import { InicioDashboardComponent } from './core/components/inicio-dashboard/ini
     UsuariosComponent,
     PresentacionesComponent,
     HerramientasComponent,
-    InicioDashboardComponent
+    InicioDashboardComponent,
+    AnalisisHistoricoComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
@@ -44,6 +46,7 @@ export class AppComponent implements OnInit {
   mostrarModal = false;
   mostrarRecetas = false;
   mostrarProcesos = false;
+  mostrarAnalisis = false;
   mostrarUsuarios = false;
   mostrarPresentaciones = false;
   mostrarHerramientas = false;
@@ -120,6 +123,7 @@ export class AppComponent implements OnInit {
     if (ruta === 'componentes') { this.mostrarModal = true; return; }
     if (ruta === 'recetas') { this.mostrarRecetas = true; return; }
     if (ruta === 'disolucion') { this.mostrarProcesos = true; return; }
+    if (ruta === 'analisis') { this.mostrarAnalisis = true; return; }
     if (ruta === 'presentaciones') { this.mostrarPresentaciones = true; return; }
     if (ruta === 'herramientas') { this.mostrarHerramientas = true; return; }
 
@@ -130,9 +134,15 @@ export class AppComponent implements OnInit {
     this.mostrarModal = false;
     this.mostrarRecetas = false;
     this.mostrarProcesos = false;
+    this.mostrarAnalisis = false;
     this.mostrarUsuarios = false;
     this.mostrarPresentaciones = false;
     this.mostrarHerramientas = false;
+  }
+
+  abrirReportesDesdeAnalisis(): void {
+    this.mostrarAnalisis = false;
+    this.mostrarProcesos = true;
   }
 
   onLogout(): void {

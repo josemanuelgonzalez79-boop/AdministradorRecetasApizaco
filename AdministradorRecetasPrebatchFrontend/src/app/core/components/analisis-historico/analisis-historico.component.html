@@ -1,0 +1,215 @@
+<div class="ah-backdrop" (click)="cerrar()"></div>
+<section class="ah-modal" role="dialog" aria-modal="true" aria-labelledby="ah-titulo" (click)="$event.stopPropagation()">
+  <header class="ah-encabezado">
+    <div class="ah-titulo">
+      <div class="ah-icono"><i class="pi pi-chart-line" aria-hidden="true"></i></div>
+      <div>
+        <span class="ah-kicker">ANÁLISIS DE PRODUCCIÓN</span>
+        <h2 id="ah-titulo">Histórico de recetas</h2>
+        <p>Compara preparaciones reales y sus metas, sin modificar los registros originales.</p>
+      </div>
+    </div>
+    <div class="ah-acciones">
+      <button type="button" class="ah-btn ah-btn--secundario" (click)="exportarCsv()" [disabled]="!filtrados.length" title="Exportar filas filtradas">
+        <i class="pi pi-download" aria-hidden="true"></i> Exportar CSV
+      </button>
+      <button type="button" class="ah-cerrar" (click)="cerrar()" aria-label="Cerrar análisis" title="Cerrar"><i class="pi pi-times" aria-hidden="true"></i></button>
+    </div>
+  </header>
+
+  <div class="ah-filtros">
+    <label class="ah-control ah-control--receta">
+      <span>Receta a analizar</span>
+      <select [(ngModel)]="recetaSeleccionada" (ngModelChange)="consultarDetalle()" [disabled]="cargandoCatalogo || !catalogo.length" aria-label="Selecciona receta">
+        <option *ngFor="let r of catalogo" [value]="r.id">{{ r.nombre }} · {{ r.id }} ({{ r.total }})</option>
+        <option *ngIf="!catalogo.length" value="">Sin recetas disponibles</option>
+      </select>
+    </label>
+    <label class="ah-control ah-control--tanque">
+      <span>Tanque</span>
+      <select [(ngModel)]="tanqueSeleccionado" (ngModelChange)="seleccionarTanque()" [disabled]="cargandoDetalle || !tanques.length" aria-label="Filtrar por tanque">
+        <option value="">Todos los tanques</option>
+        <option *ngFor="let tanque of tanques" [value]="tanque">{{ tanque }}</option>
+      </select>
+    </label>
+    <div class="ah-control ah-control--rango">
+      <span>Período</span>
+      <div class="ah-segmentos" role="group" aria-label="Rango de fechas">
+        <button type="button" [class.seleccionado]="rango === '90d'" [attr.aria-pressed]="rango === '90d'" (click)="cambiarRango('90d')">90 días</button>
+        <button type="button" [class.seleccionado]="rango === '12m'" [attr.aria-pressed]="rango === '12m'" (click)="cambiarRango('12m')">12 meses</button>
+        <button type="button" [class.seleccionado]="rango === 'todo'" [attr.aria-pressed]="rango === 'todo'" (click)="cambiarRango('todo')">Histórico</button>
+      </div>
+    </div>
+    <button class="ah-btn ah-btn--recargar" type="button" (click)="consultarCatalogo()" [disabled]="cargando" title="Actualizar datos" aria-label="Actualizar análisis">
+      <i class="pi pi-refresh" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="ah-cuerpo">
+    <div *ngIf="cargando" class="ah-mensaje" role="status"><i class="pi pi-spin pi-spinner"></i> Consultando información histórica…</div>
+    <div *ngIf="errorCatalogo || errorDetalle" class="ah-mensaje ah-mensaje--error" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ errorCatalogo || errorDetalle }}
+    </div>
+    <div *ngIf="resultadoLimitado" class="ah-mensaje ah-mensaje--advertencia" role="status">
+      <i class="pi pi-info-circle" aria-hidden="true"></i>
+      La consulta supera 500 preparaciones. El análisis corresponde solo a las 500 más recientes de la receta y período elegidos.
+    </div>
+
+    <ng-container *ngIf="!cargando && !errorCatalogo && !errorDetalle">
+      <div *ngIf="!catalogo.length" class="ah-vacio">
+        <i class="pi pi-folder-open" aria-hidden="true"></i>
+        <strong>Sin recetas en el período</strong>
+        <p>Prueba con “Histórico” para incluir preparaciones anteriores.</p>
+      </div>
+      <div *ngIf="catalogo.length && !filtrados.length" class="ah-vacio">
+        <i class="pi pi-filter-slash" aria-hidden="true"></i>
+        <strong>La selección no tiene procesos</strong>
+        <p>Elige otra receta, tanque o período.</p>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="filtrados.length && !cargando">
+      <div class="ah-introduccion">
+        <div>
+          <span class="ah-kicker">VISTA COMPARATIVA</span>
+          <h3>{{ opcionActual?.nombre || recetaSeleccionada }}</h3>
+          <small>{{ recetaSeleccionada }} · {{ ultimoRango }} · {{ tanqueSeleccionado || 'Todos los tanques' }}</small>
+        </div>
+        <span class="ah-indicador"><i class="pi pi-database" aria-hidden="true"></i> {{ filtrados.length }} folio(s)</span>
+      </div>
+
+      <div class="ah-tarjetas">
+        <article class="ah-tarjeta">
+          <span class="ah-tarjeta__icono"><i class="pi pi-list" aria-hidden="true"></i></span>
+          <span>Preparaciones</span>
+          <strong>{{ filtrados.length | number:'1.0-0' }}</strong>
+          <small>Folios únicos consultados</small>
+        </article>
+        <article class="ah-tarjeta">
+          <span class="ah-tarjeta__icono"><i class="pi pi-box" aria-hidden="true"></i></span>
+          <span>Masa media reportada</span>
+          <strong>{{ textoNumero(promedioMasa, 0) }} <em>kg</em></strong>
+          <small>Promedio por proceso</small>
+        </article>
+        <article class="ah-tarjeta">
+          <span class="ah-tarjeta__icono"><i class="pi pi-percentage" aria-hidden="true"></i></span>
+          <span>Variación media de masa</span>
+          <strong>{{ textoVariacion(variacionMediaMasa) }}</strong>
+          <small>{{ registrosConMetaMasa }} proceso(s) con meta mayor a cero</small>
+        </article>
+        <article class="ah-tarjeta">
+          <span class="ah-tarjeta__icono"><i class="pi pi-chart-bar" aria-hidden="true"></i></span>
+          <span>Agua por tonelada de masa</span>
+          <strong>{{ textoNumero(intensidadAgua, 1) }} <em>kg/t</em></strong>
+          <small>Indicador descriptivo de registros</small>
+        </article>
+      </div>
+
+      <div class="ah-doscolumnas">
+        <article class="ah-panel ah-panel--tendencia">
+          <div class="ah-panel__cabecera">
+            <div><span class="ah-kicker">TENDENCIA</span><h3>Meta frente a valor reportado</h3></div>
+            <span class="ah-ayuda">Hasta 30 puntos en orden cronológico</span>
+          </div>
+          <div class="ah-metricas" role="group" aria-label="Indicador de tendencia">
+            <button type="button" *ngFor="let m of metricas" [class.activo]="metricaSeleccionada === m.id"
+              [attr.aria-pressed]="metricaSeleccionada === m.id" (click)="seleccionarMetrica(m.id)">{{ m.nombre }}</button>
+          </div>
+          <div class="ah-grafico" *ngIf="graficoCantidad">
+            <div class="ah-leyenda"><span><i class="ah-bola ah-bola--meta"></i> Meta</span><span><i class="ah-bola ah-bola--real"></i> Reportado</span><span>({{ metricaActual.unidad }})</span></div>
+            <svg viewBox="0 0 900 260" preserveAspectRatio="none" class="ah-svg" role="img" [attr.aria-label]="'Tendencia de ' + metricaActual.nombre + ' objetivo y reportado'">
+              <g *ngFor="let nivel of nivelesGrafico">
+                <line x1="44" x2="860" [attr.y1]="229 - 193 * nivel" [attr.y2]="229 - 193 * nivel" class="ah-eje"/>
+                <text x="38" [attr.y]="233 - 193 * nivel" text-anchor="end" class="ah-eje-texto">{{ textoNumero(graficoMax * nivel, 0) }}</text>
+              </g>
+              <polyline *ngIf="graficoCantidad > 1" [attr.points]="puntosMeta" class="ah-linea ah-linea--meta"/>
+              <polyline *ngIf="graficoCantidad > 1" [attr.points]="puntosReales" class="ah-linea ah-linea--real"/>
+              <circle *ngIf="graficoCantidad === 1 && puntosMeta" [attr.cx]="puntosMeta.split(',')[0]" [attr.cy]="puntosMeta.split(',')[1]" r="5" class="ah-punto-meta"/>
+              <circle *ngIf="graficoCantidad === 1 && puntosReales" [attr.cx]="puntosReales.split(',')[0]" [attr.cy]="puntosReales.split(',')[1]" r="5" class="ah-punto-real"/>
+            </svg>
+            <div class="ah-grafico__fechas"><span>{{ graficoFechaInicio | date:'dd/MM/yyyy' }}</span><span>{{ graficoCantidad }} puntos</span><span>{{ graficoFechaFin | date:'dd/MM/yyyy' }}</span></div>
+          </div>
+          <p class="ah-nota">Los resultados reflejan registros históricos, no mediciones certificadas. Las variaciones no son alertas de calidad.</p>
+        </article>
+
+        <article class="ah-panel ah-panel--comparativo">
+          <div class="ah-panel__cabecera"><div><span class="ah-kicker">COMPARATIVO</span><h3>Promedios por proceso</h3></div></div>
+          <div class="ah-tabla-scroll">
+            <table class="ah-tabla ah-tabla--compacta">
+              <thead><tr><th>Variable</th><th>Meta</th><th>Reportado</th><th>Variación</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let c of comparativos">
+                  <th>{{ c.metrica.nombre }} <small>{{ c.metrica.unidad }}</small></th>
+                  <td>{{ textoNumero(c.meta) }}</td>
+                  <td>{{ textoNumero(c.real) }}</td>
+                  <td class="ah-delta">{{ textoVariacion(c.diferencia) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="ah-nota">Promedios de procesos con datos en ambos campos. La variación es la media de porcentajes individuales con meta mayor a cero.</p>
+        </article>
+      </div>
+
+      <article class="ah-panel ah-panel--tanques">
+        <div class="ah-panel__cabecera"><div><span class="ah-kicker">DISTRIBUCIÓN</span><h3>Desempeño registrado por tanque</h3></div><span class="ah-ayuda">Promedios por proceso</span></div>
+        <div class="ah-tabla-scroll">
+          <table class="ah-tabla ah-tabla--tanques">
+            <thead><tr><th>Tanque</th><th>Actividad</th><th>Procesos</th><th>Agua media (kg)</th><th>Masa media (kg)</th><th>Variación media de masa</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let t of porTanque">
+                <td><strong>{{ t.nombre }}</strong></td>
+                <td><div class="ah-barra"><span [style.width.%]="t.porcentaje"></span></div></td>
+                <td>{{ t.procesos }}</td>
+                <td>{{ textoNumero(t.aguaPromedio) }}</td>
+                <td>{{ textoNumero(t.masaPromedio) }}</td>
+                <td>{{ textoVariacion(t.variacionMasa) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="ah-panel ah-panel--historial">
+        <div class="ah-panel__cabecera">
+          <div><span class="ah-kicker">TRAZABILIDAD</span><h3>Preparaciones comparadas</h3></div>
+          <button type="button" class="ah-enlace" (click)="verProcesos()">Abrir reportes PDF <i class="pi pi-arrow-right" aria-hidden="true"></i></button>
+        </div>
+        <div class="ah-tabla-scroll">
+          <table class="ah-tabla ah-tabla--historial">
+            <thead><tr>
+              <th><button type="button" (click)="ordenar('processId')">Folio <i class="pi pi-sort-alt"></i></button></th>
+              <th><button type="button" (click)="ordenar('startTime')">Fecha <i class="pi pi-sort-alt"></i></button></th>
+              <th><button type="button" (click)="ordenar('tankName')">Tanque <i class="pi pi-sort-alt"></i></button></th>
+              <th><button type="button" (click)="ordenar('massAccum')">Masa reportada (kg) <i class="pi pi-sort-alt"></i></button></th>
+              <th><button type="button" (click)="ordenar('waterAccum')">Agua reportada (kg) <i class="pi pi-sort-alt"></i></button></th>
+              <th><button type="button" (click)="ordenar('variacionMasa')">Variación de masa <i class="pi pi-sort-alt"></i></button></th>
+            </tr></thead>
+            <tbody>
+              <tr *ngFor="let p of filasTabla">
+                <td><span class="ah-folio">#{{ p.processId }}</span></td>
+                <td>{{ p.startTime | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ p.tankName }}</td>
+                <td>{{ textoNumero(p.massAccum) }}</td>
+                <td>{{ textoNumero(p.waterAccum) }}</td>
+                <td>{{ textoVariacion(variacionMasa(p)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ah-paginacion">
+          <span>Mostrando {{ (pagina - 1) * porPagina + 1 }}–{{ (pagina * porPagina > filtrados.length ? filtrados.length : pagina * porPagina) }} de {{ filtrados.length }}</span>
+          <div>
+            <button type="button" (click)="cambiarPagina(-1)" [disabled]="pagina === 1" aria-label="Página anterior"><i class="pi pi-chevron-left"></i></button>
+            <span>Página {{ pagina }} de {{ totalPaginas }}</span>
+            <button type="button" (click)="cambiarPagina(1)" [disabled]="pagina === totalPaginas" aria-label="Página siguiente"><i class="pi pi-chevron-right"></i></button>
+          </div>
+        </div>
+      </article>
+    </ng-container>
+  </div>
+  <footer class="ah-pie">
+    <span><i class="pi pi-info-circle" aria-hidden="true"></i> Datos reportados por proceso. No representan por sí solos rendimiento, consumo auditado ni cumplimiento de calidad.</span>
+    <button type="button" class="ah-btn ah-btn--secundario" (click)="cerrar()">Cerrar</button>
+  </footer>
+</section>

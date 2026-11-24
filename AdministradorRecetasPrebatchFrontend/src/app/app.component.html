@@ -2,7 +2,7 @@
 <div
   *ngIf="(isAuth$ | async); else publicArea"
   class="admin-layout"
-  [class.has-modal]="mostrarModal || mostrarRecetas || mostrarProcesos || mostrarUsuarios || mostrarPresentaciones || mostrarHerramientas"
+  [class.has-modal]="mostrarModal || mostrarRecetas || mostrarProcesos || mostrarAnalisis || mostrarUsuarios || mostrarPresentaciones || mostrarHerramientas"
 >
   <header class="app-bar">
     <div class="bar">
@@ -42,6 +42,7 @@
             </button>
             <ul class="submenu" *ngIf="visibleMenu === 'reportes'">
               <li><button type="button" (click)="navegar('disolucion')"><i class="pi pi-file-pdf" aria-hidden="true"></i> Procesos de disolución</button></li>
+              <li><button type="button" (click)="navegar('analisis')"><i class="pi pi-chart-line" aria-hidden="true"></i> Análisis histórico de recetas</button></li>
             </ul>
           </li>
 
@@ -82,6 +83,7 @@
   <app-componentes-modal *ngIf="mostrarModal" (cerrarModal)="cerrarModalComponentes()"></app-componentes-modal>
   <app-recetas *ngIf="mostrarRecetas" (cerrarModal)="cerrarModalComponentes()"></app-recetas>
   <app-procesos-disolucion *ngIf="mostrarProcesos" [visible]="mostrarProcesos" (cerrarModal)="cerrarModalComponentes()"></app-procesos-disolucion>
+  <app-analisis-historico *ngIf="mostrarAnalisis" (cerrarModulo)="cerrarModalComponentes()" (abrirModulo)="abrirReportesDesdeAnalisis()"></app-analisis-historico>
   <app-usuarios *ngIf="mostrarUsuarios" [visible]="mostrarUsuarios" (cerrarModal)="cerrarModalComponentes()"></app-usuarios>
   <app-presentaciones *ngIf="mostrarPresentaciones" [visible]="mostrarPresentaciones" (cerrarModal)="cerrarModalComponentes()"></app-presentaciones>
   <app-herramientas *ngIf="mostrarHerramientas" [(visible)]="mostrarHerramientas" (imprimirPayload)="onImprimir($event)"></app-herramientas>
