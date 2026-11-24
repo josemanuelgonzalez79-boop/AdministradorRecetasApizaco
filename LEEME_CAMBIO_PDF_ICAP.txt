@@ -1,0 +1,34 @@
+ICAP / REDISEÑO DEL PDF DE DISOLUCIÓN / REGISTRO TÉCNICO DE PLANTA
+==================================================================
+BASE: rama desarrollo de AdministradorRecetasApizaco, consultada el 24/11/2026.
+
+INSTALACIÓN
+1. Descomprime este ZIP en la carpeta que contiene AdministradorRecetasPrebatchFrontend.
+2. Acepta reemplazar SOLO el archivo:
+   AdministradorRecetasPrebatchFrontend/src/app/core/services/estilo-reporte-pdf.ts
+3. Vuelve a compilar/reiniciar Angular y recarga con Ctrl+F5.
+4. Genera el PDF del proceso 218 (y otro con más de 7 posiciones)
+   para revisar márgenes y paginación según la fuente instalada.
+
+CAMBIOS
+- Aspecto de ficha técnica de planta (grafito, cobre, arena).
+- Secciones numeradas: 01 Datos de receta; 02 Concentrados;
+  03 Posiciones y componentes; 04 Bitácora de procesamiento.
+- Sin franjas alternadas; líneas horizontales y sin retícula vertical.
+- Comparación de objetivo, reportado y diferencia porcentual.
+- Etiquetas del pie/encabezado sobrias, logos conservados.
+- Bitácora cronológica completa (8 columnas) y posiciones sin duplicar.
+- Guiones cuando SCADA aún no ha registrado duración/ciclos/valores.
+- Se mantiene la división del informe en dos bloques, con posiciones
+  a partir de una página nueva; procesos largos pueden ocupar más páginas.
+- La variación porcentual es informativa, NO evalúa conformidad.
+
+NO CAMBIA: ningún archivo del backend, PostgreSQL, SCADA, Angular fuera
+         del estilizador del PDF, el tema claro/oscuro, ni el repositorio Git.
+
+PRUEBAS DE PREPARACIÓN
+- TypeScript compilado con tsc 5.8.3 en una maqueta de dependencias.
+- Prueba sintética de estructura: 7 posiciones, 7 eventos, 8 columnas,
+  diferencia de masa +267.7%, cabeceras y paginación; comprobada.
+- El PDF final aún debe probarse visualmente en el proyecto real
+  (pdfMake/Angular con sus dependencias).
