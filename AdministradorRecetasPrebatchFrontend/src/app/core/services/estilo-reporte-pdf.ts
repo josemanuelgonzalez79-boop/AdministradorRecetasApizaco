@@ -1,19 +1,6 @@
 import { ReportMain } from '../../interfaces/ReporteIndividual';
 import { SeccionesBitacora } from './secciones-bitacora';
 
-/**
- * ICAP | Registro técnico de planta (edición grafito/cobre)
- *
- * Solo modifica la presentación del documento pdfMake ya generado.
- * NO cambia los cálculos originales, las posiciones, la cronología ni
- * las consultas a PostgreSQL / SCADA. El reporte se imprime en tema claro.
- *
- * Criterios del diseño:
- *  - Sin rayado alterno ni cuadrículas completas.
- *  - Reglas horizontales finas; divisores verticales eliminados.
- *  - Cobre para identificar secciones y grafito para datos técnicos.
- *  - El color NUNCA significa aprobación o rechazo de calidad.
- */
 export function mejorarEstiloReporteDisolucion(
   documento: any,
   main: ReportMain,
@@ -58,52 +45,48 @@ export function mejorarEstiloReporteDisolucion(
     const valor = ((real - meta) / Math.abs(meta)) * 100;
     return {
       text: `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${formato(valor)}%`,
-      color: GRAFITO,
+      color: Math.abs(valor) >= 10 ? COBRE_OSCURO : GRAFITO,
       alignment: 'right',
       bold: Math.abs(valor) >= 10
     };
   };
 
-  // Una tabla sin retícula; el acento se dibuja en el borde superior.
+
   const reglas = (opciones?: { cabeceraOscura?: boolean; compacto?: boolean }) => {
-    const oscuro = opciones?.cabeceraOscura === true;
     const denso = opciones?.compacto === true;
     return {
-      hLineWidth: (i: number, tabla: any): number =>
-        i === 0 ? 2.4 : i === 1 ? 1 : i === tabla.table.body.length ? 0.85 : 0.4,
-      hLineColor: (i: number): string =>
-        i === 0 ? COBRE : i === 1 ? (oscuro ? CARBON : '#AEB6B2') : LINEA,
-      vLineWidth: (): number => 0,
-      paddingTop: (i: number): number => i === 0 ? (denso ? 5 : 6) : (denso ? 4.5 : 5),
-      paddingBottom: (i: number): number => i === 0 ? (denso ? 5 : 6) : (denso ? 4.5 : 5),
-      paddingLeft: (): number => denso ? 3 : 5,
-      paddingRight: (): number => denso ? 3 : 5,
-      fillColor: (i: number): string | null => i === 0 ? (oscuro ? CARBON : ARENA) : null
+      hLineWidth: (i: number): number => i === 0 ? 1.2 : 0.55,
+      vLineWidth: (): number => 0.55,
+      hLineColor: (i: number): string => i === 0 ? COBRE : LINEA,
+      vLineColor: (): string => LINEA,
+      paddingTop: (i: number): number => i === 0 ? 5.5 : denso ? 4.1 : 5,
+      paddingBottom: (i: number): number => i === 0 ? 5.5 : denso ? 4.1 : 5,
+      paddingLeft: (): number => denso ? 4 : 6,
+      paddingRight: (): number => denso ? 4 : 6,
+      fillColor: (i: number): string => i === 0 ? CARBON : (i % 2 === 0 ? VAINILLA : BLANCO)
     };
   };
 
-  const encabezadoTabla = (tabla: any, oscuro: boolean): void => {
+  const encabezadoTabla = (tabla: any, _oscuro: boolean): void => {
     const cabezal = tabla?.table?.body?.[0];
     if (!Array.isArray(cabezal)) return;
     for (let i = 0; i < cabezal.length; i++) {
       const celda = convertirCelda(cabezal[i]);
-      celda.fillColor = oscuro ? CARBON : ARENA;
-      celda.color = oscuro ? BLANCO : GRAFITO;
+      celda.fillColor = CARBON;
+      celda.color = BLANCO;
       celda.bold = true;
-      celda.fontSize = oscuro ? 8.1 : 8.2;
+      celda.fontSize = 8.2;
       cabezal[i] = celda;
     }
   };
 
-  // Secciones numeradas, como una hoja técnica de control de planta.
-  const tituloSeccion = (elemento: any, numero: string): void => {
+  // Títulos limpios sin numeración, como el formato de tablas anterior.
+  const tituloSeccion = (elemento: any, _numero: string): void => {
     if (!elemento || typeof elemento.text !== 'string') return;
-    elemento.text = `${numero}  /  ${elemento.text}`;
     elemento.color = GRAFITO;
     elemento.bold = true;
-    elemento.characterSpacing = 0.25;
-    elemento.fontSize = 9.6;
-    elemento.margin = [0, 12, 0, 6];
+    elemento.fontSize = 10.2;
+    elemento.margin = [0, 12, 0, 5];
     elemento.keepWithNext = true;
   };
 
@@ -164,7 +147,7 @@ export function mejorarEstiloReporteDisolucion(
     bloque.color = SECUNDARIO;
   }
 
-  // 01 / Datos de receta: resumen comparativo de tipo ficha, no tabla genérica.
+  // Datos de receta: tabla comparativa clásica con colores grafito/cobre.
   const indiceDatos = contenido.findIndex(x => nombrar(x) === 'DATOS DE RECETA');
   if (indiceDatos >= 0 && Array.isArray(contenido[indiceDatos + 1]?.table?.body)) {
     tituloSeccion(contenido[indiceDatos], '01');
@@ -212,7 +195,6 @@ export function mejorarEstiloReporteDisolucion(
     };
     encabezadoTabla(tabla, false);
     contenido[indiceDatos + 1] = tabla;
-    // Nota informativa breve para evitar interpretar la diferencia como rechazo.
     contenido.splice(indiceDatos + 2, 0, {
       text: 'Dif. % = (reportado − objetivo) / objetivo × 100. Referencia informativa; no establece conformidad.',
       color: SECUNDARIO,
@@ -222,7 +204,7 @@ export function mejorarEstiloReporteDisolucion(
     });
   }
 
-  // 02 / Concentrados: lista de materiales, sin columnas con cuadros cerrados.
+  // Concentrados: listado tabular para lectura e impresión.
   const indiceConcentrados = contenido.findIndex(x => nombrar(x) === 'CONCENTRADOS');
   if (indiceConcentrados >= 0) {
     tituloSeccion(contenido[indiceConcentrados], '02');
@@ -250,7 +232,7 @@ export function mejorarEstiloReporteDisolucion(
   // Segunda hoja: conservar la separación deliberada entre secciones.
   if (secciones.resumen[0]) secciones.resumen[0].pageBreak = 'before';
 
-  // 03 / Posiciones: matriz de operación, 1 fila por posición.
+  // Posiciones: resumen tabular, una fila por posición.
   const tituloResumen = secciones.resumen.find(x => typeof x?.text === 'string' && !x?.italics);
   tituloSeccion(tituloResumen, '03');
   const resumen = secciones.resumen.find(x => x?.table);
@@ -285,7 +267,7 @@ export function mejorarEstiloReporteDisolucion(
     notaResumen.margin = [0, 3, 0, 7];
   }
 
-  // 04 / Bitácora: conservar todos los pasos, las ocho columnas y su orden.
+  // Bitácora: conservar todos los pasos, las ocho columnas y su orden.
   const tituloBitacora = secciones.bitacora.find(x => typeof x?.text === 'string' && !x?.italics);
   tituloSeccion(tituloBitacora, '04');
   const bitacora = secciones.bitacora.find(x => x?.table);

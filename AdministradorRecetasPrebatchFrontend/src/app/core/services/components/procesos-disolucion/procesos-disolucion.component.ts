@@ -60,9 +60,11 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   public fechaInicio!: Date;
   public fechaFin!: Date;
 
-  // filtros texto
+  // Filtros de consulta y paginación estable (sin dropdown superpuesto).
   recetaFilter = '';
   tankFilter  = '';
+  filasPorPagina = 20;
+  primerRegistro = 0;
 
   constructor(
     private messageService: MessageService,
@@ -94,7 +96,29 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
 
   private ensureDefaultDates(): void {
     if (!this.fechaFin) this.fechaFin = new Date();
-    if (!this.fechaInicio) this.fechaInicio = new Date();
+    if (!this.fechaInicio) this.fechaInicio = new Date(2020, 0, 1);
+  }
+
+  /** Reinicia textos, rango de consulta y paginador, y actualiza los resultados. */
+  limpiarFiltros(): void {
+    this.recetaFilter = '';
+    this.tankFilter = '';
+    this.fechaInicio = new Date(2020, 0, 1);
+    this.fechaFin = new Date();
+    this.primerRegistro = 0;
+    this.datosReporte();
+  }
+
+  /** El select HTML evita problemas de recorte y de foco del overlay PrimeNG. */
+  cambiarFilasPorPagina(valor: number | string): void {
+    const cantidad = Number(valor);
+    if (![20, 50, 100].includes(cantidad)) return;
+    this.filasPorPagina = cantidad;
+    this.primerRegistro = 0;
+  }
+
+  alCambiarPagina(evento: { first?: number }): void {
+    this.primerRegistro = evento.first ?? 0;
   }
 
   private parseFechaToDate(val: any): Date {
@@ -166,7 +190,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
   }
 
   // Tabla -> doble clic reporte
-  async openIndividual(row: Proceso) {
+  async openIndividual(row: Proceso, descargar = false) {
     const pid = Number(row.processId);
     try {
       const mainResp = await firstValueFrom(this.reporteService.reporteMain(String(pid)));
@@ -241,7 +265,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
         return;
       }
 
-      await this.pdfBitacoraSvc.previewOneDetailed(m2, concItems, posItems, bitacoraItems);
+      await this.pdfBitacoraSvc.previewOneDetailed(m2, concItems, posItems, bitacoraItems, descargar);
 
     } catch (err) {
       console.error('Error openIndividual:', err);
@@ -251,6 +275,10 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
         detail: 'No se pudo cargar el reporte.'
       });
     }
+  }
+
+  descargarIndividual(row: Proceso): void {
+    void this.openIndividual(row, true);
   }
 
   private toDate(s: string): Date {
@@ -386,6 +414,7 @@ export class ProcesosDisolucionComponent implements OnInit, OnDestroy, OnChanges
 
   // filtra por folio / tanque sobre this.procesos (no sólo página actual)
   aplicarFiltros(): void {
+    this.primerRegistro = 0;
     const receta = this.recetaFilter.trim().toLowerCase();
     const tank  = this.tankFilter.trim().toLowerCase();
     this.filteredProcesos = this.procesos.filter(p => {

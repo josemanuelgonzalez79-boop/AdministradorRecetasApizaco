@@ -1,0 +1,31 @@
+ICAP — Actualización PDF y paginador V6 (rama de origen: desarrollo)
+
+INSTALACIÓN
+1. Descomprime este ZIP en la carpeta que contiene AdministradorRecetasPrebatchFrontend.
+2. Copia y reemplaza los 5 archivos incluidos respetando sus carpetas.
+3. Compila el frontend Angular, reinicia el servidor y actualiza navegador (Ctrl+F5).
+4. No hay cambios en Spring Boot, PostgreSQL ni GitHub.
+
+CAMBIOS
+- Fecha de fin: se eliminan los arreglos de iconos separados; datos generales ahora
+  están en una sola matriz 2 x 3, con columnas compartidas (alineación exacta).
+- PDF: vuelve el estilo de tabla con cuadrícula sutil y filas alternas en grafito,
+  marfil y cobre. Se mantienen datos originales, diferencia porcentual y bitácora.
+- Tabla Procesos: nueva columna PDF, botón Descargar en cada fila. Guarda con
+  nombre Proceso_Disolucion_<folio>.pdf, usando pdfMake.download(nombre).
+- Doble clic en fila sigue abriendo vista previa en otra pestaña.
+- El título interno del PDF también lleva el folio, por si el visor lo utiliza.
+- Paginador 20/50/100: appendTo=body evita que el menú quede recortado.
+
+PRUEBAS SUGERIDAS
+- Proceso 218: 15:53:57 inicio, 16:08:09 fin; verificar alineación de ambas filas.
+- En PDF comprobar tablas de datos de receta, concentrados, posiciones y bitácora.
+- Botón Descargar guarda Proceso_Disolucion_218.pdf; el doble clic conserva vista previa.
+- Desplegar 20/50/100 en el paginador cerca del borde inferior.
+- Probar tema claro/oscuro, Zoom 100% y 125%.
+- En procesos con Brix=0, abrir o descargar mantiene el diálogo de captura de Brix existente.
+
+NOTA
+La descarga nombrada se hace desde el botón Descargar de la aplicación.
+El botón nativo de guardado del visor PDF (ventana aparte) depende del navegador.
+No se inventan eventos, ciclos ni datos adicionales.

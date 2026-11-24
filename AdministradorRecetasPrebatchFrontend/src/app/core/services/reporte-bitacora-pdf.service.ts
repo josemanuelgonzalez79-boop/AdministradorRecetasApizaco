@@ -6,7 +6,6 @@ import { mejorarEstiloReporteDisolucion } from './estilo-reporte-pdf';
 import { ReportMain, ReportConcItem, ReportPosItem } from '../../interfaces/ReporteIndividual';
 import { ReportLogItem } from '../../interfaces/ReporteBitacora';
 
-/** Mantiene el PDF existente, unifica posiciones y conserva la bitácora completa. */
 @Injectable({ providedIn: 'root' })
 export class ReporteBitacoraPdfService {
   constructor(private readonly pdfActual: ReportePdfService) {}
@@ -15,7 +14,8 @@ export class ReporteBitacoraPdfService {
     main: ReportMain,
     conc: ReportConcItem[],
     pos: ReportPosItem[],
-    eventos: ReportLogItem[]
+    eventos: ReportLogItem[],
+    descargar = false
   ): Promise<void> {
     const generador = (this.pdfActual as any).docOneDetailed;
     if (typeof generador !== 'function') {
@@ -59,19 +59,40 @@ export class ReporteBitacoraPdfService {
       throw new Error('Validación del reporte: se detectaron secciones repetidas; PDF no generado');
     }
 
-    // Mantiene el estilo industrial de la versión anterior, sin alterar valores.
     mejorarEstiloReporteDisolucion(documento, main, secciones);
     this.ajustarAlineacion(documento, secciones);
-    pdfMake.createPdf(documento).open();
+    this.quitarNotasBajoTablas(documento, secciones);
+    const nombre = `Proceso_Disolucion_${main.processId}.pdf`;
+    documento.info = {
+      ...(documento.info ?? {}),
+      title: nombre.replace(/\.pdf$/i, ''),
+      subject: `Reporte de disolución ${main.processId}`,
+      creator: 'Administrador de Recetas ICAP'
+    };
+    const pdf = pdfMake.createPdf(documento);
+    if (descargar) pdf.download(nombre);
+    else pdf.open();
   }
 
-  /**
-   * Ajustes puramente visuales del registro técnico V5:
-   * - Las dos filas de datos del proceso comparten las mismas 3 columnas.
-   * - Icono y texto quedan juntos, especialmente en «Fecha fin».
-   * - La bitácora aprovecha el mismo ancho disponible que las otras tablas.
-   * - Las cabeceras numéricas siguen la alineación de sus valores.
-   */
+  private quitarNotasBajoTablas(documento: any, secciones: {
+    resumen: any[];
+    bitacora: any[];
+  }): void {
+    const texto = (x: any): string => typeof x?.text === 'string' ? x.text.trim() : '';
+    const notasSecciones = new Set<any>([
+      ...secciones.resumen.filter(x => x?.italics),
+      ...secciones.bitacora.filter(x => x?.italics)
+    ]);
+    documento.content = (documento.content ?? []).filter((elemento: any) => {
+      if (notasSecciones.has(elemento)) return false;
+      const valor = texto(elemento);
+      return !valor.startsWith('Dif. % = ') &&
+             !valor.startsWith('Agua: valor registrado por posición') &&
+             !valor.startsWith('—: información no capturada');
+    });
+  }
+
+
   private ajustarAlineacion(documento: any, secciones: {
     resumen: any[];
     bitacora: any[];
@@ -82,57 +103,71 @@ export class ReporteBitacoraPdfService {
       item.text.trim().toUpperCase() === 'DATOS DE RECETA'
     );
 
-    // La estructura del generador actual es:
-    // Título, datos superiores, fechas/duración, DATOS DE RECETA.
-    // Si cambia el generador en el futuro, no intervenimos otros elementos.
     if (indiceDatos >= 3) {
-      const filas = [elementos[indiceDatos - 2], elementos[indiceDatos - 1]];
-      for (const fila of filas) {
-        if (!Array.isArray(fila?.columns) || fila.columns.length !== 3) continue;
-        const resultado: any[] = [];
-        let estructuraValida = true;
-        for (let index = 0; index < 3; index++) {
-          const origen = fila.columns[index];
-          const par = origen?.table?.body?.[0];
-          if (!Array.isArray(par) || par.length !== 2 || typeof par[1]?.text !== 'string') {
-            estructuraValida = false;
-            break;
-          }
-          const iconoOriginal = par[0];
-          const icono = iconoOriginal?.image
-            ? { image: iconoOriginal.image, width: 11, margin: [0, 1, 0, 0] }
-            : { text: '' };
-          resultado.push({
-            width: index < 2 ? 184 : '*',
-            table: {
-              widths: [15, '*'],
-              body: [[
-                icono,
-                {
-                  text: par[1].text,
-                  fontSize: 8.3,
-                  color: '#384448',
-                  noWrap: true,
-                  margin: [0, 0, 0, 0]
-                }
-              ]]
-            },
-            layout: {
-              hLineWidth: () => 0,
-              vLineWidth: () => 0,
-              paddingLeft: () => 0,
-              paddingRight: () => 0,
-              paddingTop: () => 0,
-              paddingBottom: () => 0
-            },
-            margin: [0, 0, 0, 0]
-          });
-        }
-        if (estructuraValida) {
-          fila.columns = resultado;
-          fila.columnGap = 0;
-          fila.alignment = 'left';
-        }
+      const superior = elementos[indiceDatos - 2];
+      const inferior = elementos[indiceDatos - 1];
+      const texto = (fila: any, i: number): string => {
+        const resultado = fila?.columns?.[i]?.table?.body?.[0]?.[1]?.text;
+        return typeof resultado === 'string' ? resultado : '';
+      };
+      const completos = [superior, inferior].every(fila =>
+        Array.isArray(fila?.columns) && fila.columns.length === 3 &&
+        [0, 1, 2].every(i => texto(fila, i).length > 0)
+      );
+      if (completos) {
+        const datos = [
+          [texto(superior, 0).replace(/^Usuario:\s*/i, ''),
+           texto(superior, 1).replace(/^Prebatch\s*/i, ''), texto(superior, 2)],
+          [texto(inferior, 0).replace(/^Fecha inicio:\s*/i, ''),
+           texto(inferior, 1).replace(/^Fecha fin:\s*/i, ''),
+           texto(inferior, 2).replace(/^Duración:\s*/i, '')]
+        ];
+        const etiquetas = [
+          ['USUARIO', 'PREBATCH', 'DESTINO'],
+          ['FECHA DE INICIO', 'FECHA DE FIN', 'DURACIÓN']
+        ];
+        // Recuperar los mismos seis pictogramas que ya cargó el generador original.
+        // Los guardamos ANTES de sustituir las dos filas antiguas por la ficha.
+        const iconos = [superior, inferior].map(fila =>
+          [0, 1, 2].map(i => fila.columns[i]?.table?.body?.[0]?.[0]?.image ?? null)
+        );
+        const celda = (etiqueta: string, valor: string, icono: string | null): any => ({
+          columns: [
+            icono
+              ? { image: icono, width: 12, margin: [0, 3, 0, 0] }
+              : { text: '', width: 12 },
+            {
+              width: '*',
+              stack: [
+                { text: etiqueta, bold: true, fontSize: 7.3, color: '#885533', margin: [0, 0, 0, 3] },
+                { text: valor || '—', fontSize: 9.1, color: '#253035', noWrap: true }
+              ]
+            }
+          ],
+          columnGap: 5
+        });
+        const ficha = {
+          table: {
+            widths: [166, 166, '*'],
+            body: datos.map((fila, j) => fila.map((v, i) =>
+              celda(etiquetas[j][i], v, iconos[j][i])
+            )),
+            dontBreakRows: true
+          },
+          layout: {
+            hLineWidth: (i: number): number => i === 0 || i === 2 ? 0 : 0.5,
+            vLineWidth: (i: number): number => i === 0 || i === 3 ? 0 : 0.5,
+            hLineColor: (): string => '#DFD6CB',
+            vLineColor: (): string => '#DFD6CB',
+            fillColor: (i: number): string => i === 0 ? '#F7F3EE' : '#FFFFFF',
+            paddingLeft: (): number => 8,
+            paddingRight: (): number => 8,
+            paddingTop: (): number => 6,
+            paddingBottom: (): number => 6
+          },
+          margin: [0, 4, 0, 9]
+        };
+        elementos.splice(indiceDatos - 2, 2, ficha);
       }
     }
 

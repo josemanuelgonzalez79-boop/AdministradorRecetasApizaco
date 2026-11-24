@@ -23,8 +23,9 @@
       <p-table
         [value]="filteredProcesos"
         [paginator]="true"
-        [rows]="20"
-        [rowsPerPageOptions]="[20, 50, 100]"
+        [rows]="filasPorPagina"
+        [first]="primerRegistro"
+        (onPage)="alCambiarPagina($event)"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Registros {first} a {last} de {totalRecords}"
         sortField="fecha"
@@ -34,7 +35,7 @@
         columnResizeMode="expand"
         [scrollable]="true"
         scrollHeight="flex"
-        [tableStyle]="{'min-width': '1100px'}"
+        [tableStyle]="{'min-width': '1190px'}"
         styleClass="procesos-table"
       >
         <ng-template pTemplate="header">
@@ -66,6 +67,7 @@
             <th pResizableColumn pSortableColumn="waterAccum" class="col-num">
               Agua <p-sortIcon field="waterAccum"></p-sortIcon>
             </th>
+            <th class="col-descarga">PDF</th>
           </tr>
         </ng-template>
 
@@ -80,11 +82,34 @@
             <td class="col-num">{{ row.sucroseAccum | number:'1.2-2' }}</td>
             <td class="col-num">{{ row.fructoseAccum | number:'1.2-2' }}</td>
             <td class="col-num">{{ row.waterAccum | number:'1.2-2' }}</td>
+            <td class="col-descarga" (dblclick)="$event.stopPropagation()">
+              <button type="button" class="btn-descargar-pdf"
+                (click)="$event.stopPropagation(); descargarIndividual(row)"
+                [title]="'Descargar Proceso_Disolucion_' + row.processId + '.pdf'"
+                [attr.aria-label]="'Descargar PDF del proceso ' + row.processId">
+                <i class="pi pi-download" aria-hidden="true"></i> Descargar
+              </button>
+            </td>
           </tr>
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="9" class="empty-state">No se encontraron procesos con los filtros seleccionados.</td></tr>
+          <tr><td colspan="10" class="empty-state">No se encontraron procesos con los filtros seleccionados.</td></tr>
+        </ng-template>
+
+        <!-- Native select: opens in its own OS layer instead of an overlay clipped by the modal. -->
+        <ng-template pTemplate="paginatorright">
+          <label class="filas-selector" for="filas-por-pagina">
+            <span>Filas por página</span>
+            <select id="filas-por-pagina"
+              [ngModel]="filasPorPagina"
+              (ngModelChange)="cambiarFilasPorPagina($event)"
+              aria-label="Número de procesos por página">
+              <option [ngValue]="20">20</option>
+              <option [ngValue]="50">50</option>
+              <option [ngValue]="100">100</option>
+            </select>
+          </label>
         </ng-template>
       </p-table>
     </div>
@@ -128,7 +153,7 @@
       </div>
       <div class="filtros__actions">
         <button pButton type="button" label="Limpiar" class="p-button-outlined p-button-secondary"
-          (click)="recetaFilter = ''; tankFilter = ''; aplicarFiltros()"></button>
+          (click)="limpiarFiltros()"></button>
         <button pButton type="button" label="Consultar" (click)="buscarProcesos()"></button>
         <button pButton type="button" label="Imprimir" class="p-button-outlined"
           (click)="previewPdf()" [disabled]="!filteredProcesos.length"></button>

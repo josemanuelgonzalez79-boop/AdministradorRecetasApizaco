@@ -248,7 +248,7 @@ export class ReportePdfService {
 
     // Título + básicos
     const title = {
-      text: `[${main.recipeId}] ${main.name} - ${main.units}U`,
+      text: `[${main.recipeId}] ${main.name} - ${main.units} UNIDADES`,
       style: 'title',
       margin: [0, 16, 0, 12]
     };

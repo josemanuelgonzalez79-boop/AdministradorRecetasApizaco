@@ -105,11 +105,6 @@
         </article>
       </div>
 
-      <div class="ah-cobertura" *ngIf="registrosConMetaMasa < filtrados.length">
-        <i class="pi pi-info-circle" aria-hidden="true"></i>
-        <span><strong>Cobertura del cálculo:</strong> la variación media de masa utiliza {{ registrosConMetaMasa }} de {{ filtrados.length }} preparaciones ({{ textoNumero(coberturaMasa, 1) }} %).
-        Las demás no tienen una comparación válida con meta positiva; no se interpretan como variación cero.</span>
-      </div>
 
       <div class="ah-doscolumnas">
         <article class="ah-panel ah-panel--tendencia">
@@ -171,7 +166,6 @@
             <p><strong>Últimos 15:</strong> preparaciones cronológicas más recientes. <strong>Distribuidos 30:</strong> muestra repartida en todo el período; los puntos pueden representar folios no consecutivos. Ninguna vista altera los promedios.</p>
             <p><strong>Enfoque:</strong> acerca el eje vertical usando el percentil 90 cuando hay valores muy elevados. Los valores por encima del límite quedan marcados en el borde superior; no se borran. La escala completa muestra todos los valores.</p>
           </details>
-          <p class="ah-nota">La gráfica describe datos históricos. Las diferencias no significan por sí solas un fallo de calidad y los valores sin registro no se conectan.</p>
         </article>
 
         <article class="ah-panel ah-panel--comparativo">

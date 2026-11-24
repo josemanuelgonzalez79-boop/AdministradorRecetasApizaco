@@ -261,3 +261,62 @@
   .filtros__actions { justify-content: stretch; }
   .filtros__actions > button { flex: 1 1 auto; }
 }
+
+/* Paginador: su dropdown se anexa al body; evita que quede cortado. */
+:host ::ng-deep .procesos-table .p-paginator .p-dropdown { min-width: 82px; }
+:host ::ng-deep .procesos-table .p-paginator { overflow: visible; }
+:host ::ng-deep .procesos-table .p-paginator .p-dropdown-label { font-variant-numeric: tabular-nums; }
+::ng-deep .p-dropdown-panel { z-index: 8000 !important; }
+
+/* Descarga por folio independiente de la vista previa (doble clic). */
+.col-descarga { width: 108px; min-width: 108px; text-align: center; }
+.btn-descargar-pdf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #cbd7e5;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #ffffff;
+  color: #285b89;
+  font-size: 0.77rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn-descargar-pdf:hover { background: #e9f2fc; border-color: #99b7dc; }
+.btn-descargar-pdf:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+/* V7: selector nativo sin overlay PrimeNG: funciona aun al pie del modal. */
+:host ::ng-deep .procesos-table .p-paginator-right-content { margin-left: auto; }
+.filas-selector {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.77rem;
+  color: #55677f;
+  white-space: nowrap;
+}
+.filas-selector select {
+  min-width: 74px;
+  height: 35px;
+  padding: 5px 23px 5px 10px;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font: inherit;
+  cursor: pointer;
+}
+.filas-selector select:focus-visible {
+  outline: 2px solid #4386df;
+  outline-offset: 2px;
+}
+:host-context(.icap-dark) .filas-selector { color: #b5c4d6; }
+:host-context(.icap-dark) .filas-selector select {
+  color: #e4ebf4;
+  background: #263343;
+  border-color: #526278;
+}
+@media (max-width: 640px) { .filas-selector span { display: none; } }
