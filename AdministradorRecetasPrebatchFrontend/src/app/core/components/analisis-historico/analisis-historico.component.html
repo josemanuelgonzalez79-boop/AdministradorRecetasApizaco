@@ -89,57 +89,100 @@
           <span class="ah-tarjeta__icono"><i class="pi pi-box" aria-hidden="true"></i></span>
           <span>Masa media reportada</span>
           <strong>{{ textoNumero(promedioMasa, 0) }} <em>kg</em></strong>
-          <small>Promedio por proceso</small>
+          <small>{{ registrosConMasa }} de {{ filtrados.length }} folios con dato de masa</small>
         </article>
         <article class="ah-tarjeta">
           <span class="ah-tarjeta__icono"><i class="pi pi-percentage" aria-hidden="true"></i></span>
           <span>Variación media de masa</span>
           <strong>{{ textoVariacion(variacionMediaMasa) }}</strong>
-          <small>{{ registrosConMetaMasa }} proceso(s) con meta mayor a cero</small>
+          <small>Calculada con {{ registrosConMetaMasa }} de {{ filtrados.length }} folios</small>
         </article>
         <article class="ah-tarjeta">
           <span class="ah-tarjeta__icono"><i class="pi pi-chart-bar" aria-hidden="true"></i></span>
           <span>Agua por tonelada de masa</span>
           <strong>{{ textoNumero(intensidadAgua, 1) }} <em>kg/t</em></strong>
-          <small>Indicador descriptivo de registros</small>
+          <small>Agua total / masa total × 1,000 ({{ registrosIntensidad }} folios)</small>
         </article>
+      </div>
+
+      <div class="ah-cobertura" *ngIf="registrosConMetaMasa < filtrados.length">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <span><strong>Cobertura del cálculo:</strong> la variación media de masa utiliza {{ registrosConMetaMasa }} de {{ filtrados.length }} preparaciones ({{ textoNumero(coberturaMasa, 1) }} %).
+        Las demás no tienen una comparación válida con meta positiva; no se interpretan como variación cero.</span>
       </div>
 
       <div class="ah-doscolumnas">
         <article class="ah-panel ah-panel--tendencia">
           <div class="ah-panel__cabecera">
             <div><span class="ah-kicker">TENDENCIA</span><h3>Meta frente a valor reportado</h3></div>
-            <span class="ah-ayuda">Hasta 30 puntos en orden cronológico</span>
+            <span class="ah-ayuda">Cada punto representa un folio</span>
           </div>
           <div class="ah-metricas" role="group" aria-label="Indicador de tendencia">
             <button type="button" *ngFor="let m of metricas" [class.activo]="metricaSeleccionada === m.id"
               [attr.aria-pressed]="metricaSeleccionada === m.id" (click)="seleccionarMetrica(m.id)">{{ m.nombre }}</button>
           </div>
-          <div class="ah-grafico" *ngIf="graficoCantidad">
-            <div class="ah-leyenda"><span><i class="ah-bola ah-bola--meta"></i> Meta</span><span><i class="ah-bola ah-bola--real"></i> Reportado</span><span>({{ metricaActual.unidad }})</span></div>
-            <svg viewBox="0 0 900 260" preserveAspectRatio="none" class="ah-svg" role="img" [attr.aria-label]="'Tendencia de ' + metricaActual.nombre + ' objetivo y reportado'">
-              <g *ngFor="let nivel of nivelesGrafico">
-                <line x1="44" x2="860" [attr.y1]="229 - 193 * nivel" [attr.y2]="229 - 193 * nivel" class="ah-eje"/>
-                <text x="38" [attr.y]="233 - 193 * nivel" text-anchor="end" class="ah-eje-texto">{{ textoNumero(graficoMax * nivel, 0) }}</text>
-              </g>
-              <polyline *ngIf="graficoCantidad > 1" [attr.points]="puntosMeta" class="ah-linea ah-linea--meta"/>
-              <polyline *ngIf="graficoCantidad > 1" [attr.points]="puntosReales" class="ah-linea ah-linea--real"/>
-              <circle *ngIf="graficoCantidad === 1 && puntosMeta" [attr.cx]="puntosMeta.split(',')[0]" [attr.cy]="puntosMeta.split(',')[1]" r="5" class="ah-punto-meta"/>
-              <circle *ngIf="graficoCantidad === 1 && puntosReales" [attr.cx]="puntosReales.split(',')[0]" [attr.cy]="puntosReales.split(',')[1]" r="5" class="ah-punto-real"/>
-            </svg>
-            <div class="ah-grafico__fechas"><span>{{ graficoFechaInicio | date:'dd/MM/yyyy' }}</span><span>{{ graficoCantidad }} puntos</span><span>{{ graficoFechaFin | date:'dd/MM/yyyy' }}</span></div>
+          <div class="ah-grafico-opciones">
+            <div class="ah-grafico-opciones__grupo" role="group" aria-label="Folio(s) del gráfico">
+              <button type="button" [class.activo]="muestraGrafico === 'ultimos15'" (click)="cambiarMuestraGrafico('ultimos15')">Últimos 15</button>
+              <button type="button" [class.activo]="muestraGrafico === 'distribuidos30'" (click)="cambiarMuestraGrafico('distribuidos30')">Distribuidos 30</button>
+            </div>
+            <div class="ah-grafico-opciones__grupo" role="group" aria-label="Escala vertical">
+              <button type="button" [class.activo]="escalaGrafico === 'completa'" (click)="cambiarEscalaGrafico('completa')">Escala completa</button>
+              <button type="button" [class.activo]="escalaGrafico === 'enfoque'" (click)="cambiarEscalaGrafico('enfoque')">Enfoque</button>
+            </div>
           </div>
-          <p class="ah-nota">Los resultados reflejan registros históricos, no mediciones certificadas. Las variaciones no son alertas de calidad.</p>
+          <div class="ah-grafico" *ngIf="graficoCantidad">
+            <div class="ah-leyenda"><span><i class="ah-bola ah-bola--meta"></i> Objetivo (meta)</span><span><i class="ah-bola ah-bola--real"></i> Reportado</span><span>{{ metricaActual.unidad }}</span></div>
+            <svg viewBox="0 0 900 260" preserveAspectRatio="none" class="ah-svg" role="group" aria-label="Tendencia de la variable elegida por folio">
+              <g *ngFor="let nivel of nivelesGrafico">
+                <line x1="60" x2="856" [attr.y1]="229 - 193 * nivel" [attr.y2]="229 - 193 * nivel" class="ah-eje"/>
+                <text x="53" [attr.y]="233 - 193 * nivel" text-anchor="end" class="ah-eje-texto">{{ textoNumero(graficoMax * nivel, 0) }}</text>
+              </g>
+              <path *ngFor="let ruta of rutasMeta" [attr.d]="ruta" class="ah-linea ah-linea--meta"/>
+              <path *ngFor="let ruta of rutasReportado" [attr.d]="ruta" class="ah-linea ah-linea--real"/>
+              <ng-container *ngFor="let p of puntosGrafico; let i = index">
+                <circle *ngIf="p.yMeta != null" [attr.cx]="p.x" [attr.cy]="p.yMeta" [attr.r]="indicePunto === i ? 5.5 : 3.5"
+                  class="ah-punto-meta ah-punto-interactivo" [class.ah-punto-recortado]="p.metaRecortada"
+                  tabindex="0" role="button" (mouseenter)="seleccionarPuntoGrafico(i)" (focus)="seleccionarPuntoGrafico(i)" (click)="seleccionarPuntoGrafico(i)">
+                  <title>Folio {{ p.processId }} · Meta: {{ textoNumero(p.meta) }} {{ metricaActual.unidad }}</title>
+                </circle>
+                <circle *ngIf="p.yReal != null" [attr.cx]="p.x" [attr.cy]="p.yReal" [attr.r]="indicePunto === i ? 5.5 : 3.5"
+                  class="ah-punto-real ah-punto-interactivo" [class.ah-punto-recortado]="p.realRecortado"
+                  tabindex="0" role="button" (mouseenter)="seleccionarPuntoGrafico(i)" (focus)="seleccionarPuntoGrafico(i)" (click)="seleccionarPuntoGrafico(i)">
+                  <title>Folio {{ p.processId }} · Reportado: {{ textoNumero(p.real) }} {{ metricaActual.unidad }}</title>
+                </circle>
+              </ng-container>
+            </svg>
+            <div class="ah-grafico__fechas"><span>{{ graficoFechaInicio | date:'dd/MM/yyyy' }}</span><span>{{ graficoCantidad }} folio(s) visibles</span><span>{{ graficoFechaFin | date:'dd/MM/yyyy' }}</span></div>
+            <p class="ah-alerta-escala" *ngIf="graficoRecortes > 0"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+              Escala enfocada: {{ graficoRecortes }} valor(es) superan el máximo del eje. Se dibujan en el borde superior; los datos completos siguen disponibles al seleccionar cada punto.
+            </p>
+            <div class="ah-detalle-punto" *ngIf="puntoSeleccionado as punto">
+              <div><span>Folio seleccionado</span><strong>#{{ punto.processId }}</strong><small>{{ punto.fecha | date:'dd/MM/yyyy HH:mm' }} · {{ punto.tanque }}</small></div>
+              <div><span>Meta</span><strong>{{ textoNumero(punto.meta) }} <small>{{ metricaActual.unidad }}</small></strong></div>
+              <div><span>Reportado</span><strong>{{ textoNumero(punto.real) }} <small>{{ metricaActual.unidad }}</small></strong></div>
+              <div><span>Variación</span><strong>{{ textoVariacion(variacion(punto.meta, punto.real)) }}</strong></div>
+            </div>
+          </div>
+          <details class="ah-explicacion-grafico">
+            <summary><i class="pi pi-info-circle" aria-hidden="true"></i> ¿Cómo leer esta gráfica?</summary>
+            <p><strong>Eje horizontal:</strong> folios ordenados por fecha (izquierda: anterior; derecha: más reciente). <strong>Eje vertical:</strong> cantidad de la variable elegida en kg o L.</p>
+            <p><strong>Línea discontinua:</strong> meta programada. <strong>Línea continua:</strong> valor reportado. Selecciona un punto para ver su folio, tanque, fecha y diferencia.</p>
+            <p><strong>Últimos 15:</strong> preparaciones cronológicas más recientes. <strong>Distribuidos 30:</strong> muestra repartida en todo el período; los puntos pueden representar folios no consecutivos. Ninguna vista altera los promedios.</p>
+            <p><strong>Enfoque:</strong> acerca el eje vertical usando el percentil 90 cuando hay valores muy elevados. Los valores por encima del límite quedan marcados en el borde superior; no se borran. La escala completa muestra todos los valores.</p>
+          </details>
+          <p class="ah-nota">La gráfica describe datos históricos. Las diferencias no significan por sí solas un fallo de calidad y los valores sin registro no se conectan.</p>
         </article>
 
         <article class="ah-panel ah-panel--comparativo">
           <div class="ah-panel__cabecera"><div><span class="ah-kicker">COMPARATIVO</span><h3>Promedios por proceso</h3></div></div>
           <div class="ah-tabla-scroll">
             <table class="ah-tabla ah-tabla--compacta">
-              <thead><tr><th>Variable</th><th>Meta</th><th>Reportado</th><th>Variación</th></tr></thead>
+              <colgroup><col class="ah-col-variable"/><col class="ah-col-meta"/><col class="ah-col-real"/><col class="ah-col-delta"/></colgroup>
+              <thead><tr><th scope="col">Variable</th><th scope="col">Meta</th><th scope="col">Reportado</th><th scope="col">Variación</th></tr></thead>
               <tbody>
                 <tr *ngFor="let c of comparativos">
-                  <th>{{ c.metrica.nombre }} <small>{{ c.metrica.unidad }}</small></th>
+                  <th scope="row">{{ c.metrica.nombre }} <small>{{ c.metrica.unidad }}</small><span class="ah-n-registros">{{ c.muestra }} registro(s)</span></th>
                   <td>{{ textoNumero(c.meta) }}</td>
                   <td>{{ textoNumero(c.real) }}</td>
                   <td class="ah-delta">{{ textoVariacion(c.diferencia) }}</td>
@@ -147,7 +190,12 @@
               </tbody>
             </table>
           </div>
-          <p class="ah-nota">Promedios de procesos con datos en ambos campos. La variación es la media de porcentajes individuales con meta mayor a cero.</p>
+          <details class="ah-explicacion-grafico ah-explicacion-grafico--tabla">
+            <summary><i class="pi pi-info-circle" aria-hidden="true"></i> ¿Cómo se calculan los promedios?</summary>
+            <p><strong>Meta / Reportado:</strong> promedio aritmético de los folios que tienen ambos datos (cantidad indicada debajo de cada variable).</p>
+            <p><strong>Variación:</strong> promedio de [(reportado − meta) / meta] × 100 por folio con meta mayor que cero. No es necesariamente igual a la diferencia entre las dos columnas de promedios.</p>
+            <p><strong>—:</strong> dato no disponible o porcentaje no aplicable si la meta es cero. Un valor 0.00 recibido de la BD no se convierte automáticamente en dato faltante.</p>
+          </details>
         </article>
       </div>
 
@@ -155,7 +203,8 @@
         <div class="ah-panel__cabecera"><div><span class="ah-kicker">DISTRIBUCIÓN</span><h3>Desempeño registrado por tanque</h3></div><span class="ah-ayuda">Promedios por proceso</span></div>
         <div class="ah-tabla-scroll">
           <table class="ah-tabla ah-tabla--tanques">
-            <thead><tr><th>Tanque</th><th>Actividad</th><th>Procesos</th><th>Agua media (kg)</th><th>Masa media (kg)</th><th>Variación media de masa</th></tr></thead>
+            <colgroup><col style="width:14%"/><col style="width:19%"/><col style="width:11%"/><col style="width:18%"/><col style="width:18%"/><col style="width:20%"/></colgroup>
+            <thead><tr><th scope="col">Tanque</th><th scope="col">Actividad</th><th scope="col">Procesos</th><th scope="col">Agua media (kg)</th><th scope="col">Masa media (kg)</th><th scope="col">Variación media de masa</th></tr></thead>
             <tbody>
               <tr *ngFor="let t of porTanque">
                 <td><strong>{{ t.nombre }}</strong></td>
@@ -168,6 +217,7 @@
             </tbody>
           </table>
         </div>
+        <p class="ah-nota">La barra compara la cantidad de folios contra el tanque con más procesos (100 %); no representa kg, eficiencia ni tiempo. Cada promedio usa únicamente folios con dato disponible.</p>
       </article>
 
       <article class="ah-panel ah-panel--historial">
@@ -177,6 +227,7 @@
         </div>
         <div class="ah-tabla-scroll">
           <table class="ah-tabla ah-tabla--historial">
+            <colgroup><col style="width:9%"/><col style="width:19%"/><col style="width:18%"/><col style="width:18%"/><col style="width:18%"/><col style="width:18%"/></colgroup>
             <thead><tr>
               <th><button type="button" (click)="ordenar('processId')">Folio <i class="pi pi-sort-alt"></i></button></th>
               <th><button type="button" (click)="ordenar('startTime')">Fecha <i class="pi pi-sort-alt"></i></button></th>

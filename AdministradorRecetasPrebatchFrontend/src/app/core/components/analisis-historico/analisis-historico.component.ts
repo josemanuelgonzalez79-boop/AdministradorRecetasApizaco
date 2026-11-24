@@ -46,6 +46,19 @@ interface Comparativo {
   diferencia: number | null;
   muestra: number;
 }
+interface PuntoGrafica {
+  processId: number;
+  fecha: string;
+  tanque: string;
+  meta: number | null;
+  real: number | null;
+  x: number;
+  yMeta: number | null;
+  yReal: number | null;
+  metaRecortada: boolean;
+  realRecortado: boolean;
+}
+
 interface TanqueResumen {
   nombre: string;
   procesos: number;
@@ -101,9 +114,19 @@ export class AnalisisHistoricoComponent implements OnInit, OnDestroy {
   variacionMediaMasa: number | null = null;
   intensidadAgua: number | null = null;
   registrosConMetaMasa = 0;
+  registrosConMasa = 0;
+  registrosIntensidad = 0;
 
-  puntosMeta = '';
-  puntosReales = '';
+  // La gráfica nunca excluye procesos al calcular los indicadores superiores.
+  // Sus muestras sirven únicamente para visualizar las tendencias.
+  muestraGrafico: 'ultimos15' | 'distribuidos30' = 'ultimos15';
+  escalaGrafico: 'completa' | 'enfoque' = 'completa';
+  puntosGrafico: PuntoGrafica[] = [];
+  rutasMeta: string[] = [];
+  rutasReportado: string[] = [];
+  indicePunto = -1;
+  graficoRecortes = 0;
+  graficoMaxOriginal = 0;
   graficoMax = 1;
   graficoCantidad = 0;
   graficoFechaInicio = '';
@@ -147,6 +170,14 @@ export class AnalisisHistoricoComponent implements OnInit, OnDestroy {
 
   get cargando(): boolean { return this.cargandoCatalogo || this.cargandoDetalle; }
 
+  get puntoSeleccionado(): PuntoGrafica | null {
+    return this.puntosGrafico[this.indicePunto] ?? null;
+  }
+
+  get coberturaMasa(): number {
+    return this.filtrados.length ? 100 * this.registrosConMetaMasa / this.filtrados.length : 0;
+  }
+
   get totalPaginas(): number {
     return Math.max(1, Math.ceil(this.filtrados.length / this.porPagina));
   }
@@ -176,6 +207,22 @@ export class AnalisisHistoricoComponent implements OnInit, OnDestroy {
   seleccionarMetrica(id: ClaveMetrica): void {
     this.metricaSeleccionada = id;
     this.calcularGrafica();
+  }
+
+  cambiarMuestraGrafico(muestra: 'ultimos15' | 'distribuidos30'): void {
+    if (this.muestraGrafico === muestra) return;
+    this.muestraGrafico = muestra;
+    this.calcularGrafica();
+  }
+
+  cambiarEscalaGrafico(escala: 'completa' | 'enfoque'): void {
+    if (this.escalaGrafico === escala) return;
+    this.escalaGrafico = escala;
+    this.calcularGrafica();
+  }
+
+  seleccionarPuntoGrafico(indice: number): void {
+    if (indice >= 0 && indice < this.puntosGrafico.length) this.indicePunto = indice;
   }
 
   seleccionarTanque(): void {
@@ -323,12 +370,14 @@ export class AnalisisHistoricoComponent implements OnInit, OnDestroy {
       const validos = valores.filter((v): v is number => v != null && Number.isFinite(v));
       return validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : null;
     };
+    this.registrosConMasa = this.filtrados.filter(x => x.massAccum != null).length;
     this.promedioMasa = promedio(this.filtrados.map(x => x.massAccum));
     this.promedioAgua = promedio(this.filtrados.map(x => x.waterAccum));
     const difMasa = this.filtrados.map(x => this.variacion(x.massSetpoint, x.massAccum));
     this.registrosConMetaMasa = difMasa.filter(v => v != null).length;
     this.variacionMediaMasa = promedio(difMasa);
     const conAmbos = this.filtrados.filter(x => x.massAccum != null && x.massAccum > 0 && x.waterAccum != null);
+    this.registrosIntensidad = conAmbos.length;
     const sumaMasa = conAmbos.reduce((s, x) => s + (x.massAccum ?? 0), 0);
     const sumaAgua = conAmbos.reduce((s, x) => s + (x.waterAccum ?? 0), 0);
     this.intensidadAgua = sumaMasa > 0 ? (sumaAgua / sumaMasa) * 1000 : null;
@@ -378,31 +427,78 @@ export class AnalisisHistoricoComponent implements OnInit, OnDestroy {
   variacionMasa(p: ProcesoDetalle): number | null { return this.variacion(p.massSetpoint, p.massAccum); }
 
   private calcularGrafica(): void {
-    const m = this.metricaActual;
-    const cronologico = [...this.filtrados].sort((a, b) => a.startTime.localeCompare(b.startTime));
-    // Mantener legible el eje X cuando existen cientos de preparaciones.
-    const maxPuntos = 30;
-    const muestra = cronologico.length <= maxPuntos ? cronologico :
-      Array.from({ length: maxPuntos }, (_, i) => cronologico[Math.round(i * (cronologico.length - 1) / (maxPuntos - 1))]);
-    const datos = muestra.map(p => ({
+    const metrica = this.metricaActual;
+    const todos = [...this.filtrados].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime) || a.processId - b.processId
+    );
+    // "Últimos 15" = últimos 15 folios cronológicos; "Distribuidos 30" =
+    // muestra homogénea del período completo, NO necesariamente consecutivos.
+    const seleccion = this.muestraGrafico === 'ultimos15'
+      ? todos.slice(-15)
+      : todos.length <= 30 ? todos
+        : Array.from({ length: 30 }, (_, i) => todos[Math.round(i * (todos.length - 1) / 29)]);
+
+    const datos = seleccion.map(p => ({
+      processId: p.processId,
       fecha: p.startTime,
-      meta: this.valor(p, m.meta),
-      real: this.valor(p, m.real)
+      tanque: p.tankName,
+      meta: this.valor(p, metrica.meta),
+      real: this.valor(p, metrica.real)
     }));
-    const valores = datos.flatMap(x => [x.meta, x.real]).filter((v): v is number => v != null && v >= 0);
-    this.graficoMax = Math.max(1, ...valores) * 1.08;
-    const punto = (v: number, i: number): string => {
-      const x = datos.length <= 1 ? 450 : 44 + 816 * i / (datos.length - 1);
-      const y = 229 - Math.max(0, v) / this.graficoMax * 193;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    const valores = datos.flatMap(x => [x.meta, x.real])
+      .filter((v): v is number => v != null && Number.isFinite(v) && v >= 0);
+    this.graficoMaxOriginal = valores.length ? Math.max(...valores) : 0;
+
+    // El modo "Enfoque" recorta SOLO la escala visual al percentil 90,
+    // nunca altera valores, indicadores ni tablas. Los puntos recortados
+    // siguen visibles en el borde superior y muestran su valor en el detalle.
+    const ordenados = [...valores].sort((a, b) => a - b);
+    const limiteEnfoque = ordenados.length >= 5
+      ? ordenados[Math.max(0, Math.ceil(ordenados.length * .9) - 1)]
+      : this.graficoMaxOriginal;
+    const hayAtipico = limiteEnfoque > 0 && this.graficoMaxOriginal > limiteEnfoque * 1.25;
+    const maxBase = this.escalaGrafico === 'enfoque' && hayAtipico
+      ? limiteEnfoque : this.graficoMaxOriginal;
+    this.graficoMax = Math.max(1, maxBase * 1.08);
+    this.graficoRecortes = valores.filter(v => v > this.graficoMax).length;
+
+    const ejeX = (i: number): number => datos.length <= 1
+      ? 450 : 60 + 796 * i / (datos.length - 1);
+    const ejeY = (v: number | null): number | null => v == null ? null
+      : 229 - Math.min(this.graficoMax, Math.max(0, v)) / this.graficoMax * 193;
+
+    this.puntosGrafico = datos.map((d, i) => ({
+      ...d,
+      x: ejeX(i),
+      yMeta: ejeY(d.meta),
+      yReal: ejeY(d.real),
+      metaRecortada: d.meta != null && d.meta > this.graficoMax,
+      realRecortado: d.real != null && d.real > this.graficoMax
+    }));
+
+    // Separar líneas en los huecos: no conectar valores faltantes como
+    // si fuesen una medición continua.
+    const tramos = (clave: 'yMeta' | 'yReal'): string[] => {
+      const lista: string[] = [];
+      let segmento = '';
+      for (const punto of this.puntosGrafico) {
+        const y = punto[clave];
+        if (y == null) {
+          if (segmento) lista.push(segmento);
+          segmento = '';
+          continue;
+        }
+        segmento += `${segmento ? ' L' : 'M'}${punto.x.toFixed(1)},${y.toFixed(1)}`;
+      }
+      if (segmento) lista.push(segmento);
+      return lista;
     };
-    this.puntosMeta = datos.map((d, i) => d.meta == null ? null : punto(d.meta, i))
-      .filter((x): x is string => x != null).join(' ');
-    this.puntosReales = datos.map((d, i) => d.real == null ? null : punto(d.real, i))
-      .filter((x): x is string => x != null).join(' ');
+    this.rutasMeta = tramos('yMeta');
+    this.rutasReportado = tramos('yReal');
     this.graficoCantidad = datos.length;
     this.graficoFechaInicio = datos[0]?.fecha ?? '';
     this.graficoFechaFin = datos[datos.length - 1]?.fecha ?? '';
+    this.indicePunto = datos.length - 1;
   }
 
   textoNumero(valor: number | null, decimales = 2): string {
